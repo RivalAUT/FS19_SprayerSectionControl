@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<modDesc descVersion="47">
+    <title>
+        <en>SprayerSectionControl</en>
+        <de>Teilbreitenschaltung</de>
+    </title>
+    <description>
+		<de><![CDATA[Mit diesem Mod können einzelne Teilbreiten von Spritzen deaktiviert werden.]]>
+		</de>
+		<en><![CDATA[This mod adds the ability to turn sections of sprayers off.]]>
+		</en>
+    </description>
+    <author>Rival</author>
+    <version>0.1.0.0</version>
+    <iconFilename>icon.dds</iconFilename>
+    <multiplayer supported="true"/>
+    <extraSourceFiles>
+        <!--sourceFile filename="register.lua" /-->
+        <sourceFile filename="AddSpecialization.lua"/>
+    </extraSourceFiles>
+	
+	<addSpecialization>
+		<specialization name="sprayerSectionControl" className="SprayerSectionControl" filename="SprayerSectionControl.lua" l10nNameTag="GAME_EXTENSION" debug="false">
+			<restrictions state="0" name="sprayer" /> <!-- required -->
+			<restrictions state="1" name="sowingMachine" /> <!-- unallowed -->
+			<restrictions state="1" name="cultivator" /> <!-- unallowed -->
+		</specialization>
+	</addSpecialization>
+
+</modDesc>
