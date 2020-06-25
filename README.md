@@ -23,7 +23,7 @@ The workAreas need to be set up around each spraying section, with a little over
 It is also needed to create a testArea which is a little bigger by increasing the length in driving direction.
 
 Image: *(testArea uses the height node of the workArea in this example.)*
-![workArea setup](http://rival.bplaced.net/SSC_workArea.png)
+![workArea setup](http://rival.bplaced.net/SSC_workArea2.png)
 
 #### XML part
 The XML part is mainly copy-paste. The following lines need to be copied into the sprayer's XML file.
