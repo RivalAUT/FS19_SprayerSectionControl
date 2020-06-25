@@ -18,7 +18,7 @@ Converting sprayers to work with section control is not difficult. You need some
 
 #### i3D part
 The workAreas need to be set up around each spraying section, with a little overlap to the next section. 
-It is also needed to create a testArea which is a little bigger by increasing the length in driving direction.
+It is also needed to create a testArea which is a little bigger by increasing the length in driving direction for 1m.
 
 Image: *(testArea uses the height node of the workArea in this example.)*
 ![workArea setup](http://rival.bplaced.net/SSC_workArea.png)
@@ -44,7 +44,7 @@ Although the entries should be self-explaining I will explain them for you:
 - All sections get linked to their workAreas and effect nodes here.
 - workingWidth is the working width of this section. All section working widths combined should be equal to the total working width (24m in this example). This is used for calculating the spray usage.
 - workAreaId is the index of the workArea in the `<workAreas>` part. The first workArea has index/id 1.
-- effectNodeId is the index of the effect node in the `<sprayer> <effects>` part. Again, the first effectNode has index/id 1.
+- effectNodeId is the index of the effect node in the `<sprayer> <effects>` part. Again, the first effectNode has index/id 1. If more than one effectNodes are used for one section, you can add them like this: `effectNodeId="1 2 3 4"`
 - testAreaStartNode / WidthNode / HeightNode are indices to the corresponding i3D node. This is done via i3DMappings.
 
 

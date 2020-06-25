@@ -15,6 +15,7 @@ function SprayerSectionControl.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOn", SprayerSectionControl)
+	--SpecializationUtil.registerEventListener(vehicleType, "onDraw", SprayerSectionControl)
 end
 
 function SprayerSectionControl.registerOverwrittenFunctions(vehicleType)
@@ -26,7 +27,6 @@ function SprayerSectionControl.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getSprayerFullWidth", SprayerSectionControl.getSprayerFullWidth)
 	SpecializationUtil.registerFunction(vehicleType, "getActiveSprayerSectionsWidth", SprayerSectionControl.getActiveSprayerSectionsWidth)
 end
-
 
 function SprayerSectionControl:onLoad(savegame)
 	local spec = {}
@@ -45,19 +45,19 @@ function SprayerSectionControl:onLoad(savegame)
 			end
 			i = i + 1
 			local workAreaId = getXMLInt(self.xmlFile, key.."#workAreaId")
-			local effectNodeId = getXMLInt(self.xmlFile, key.."#effectNodeId")
+			local effectNodes = StringUtil.splitString(" ", StringUtil.trim(getXMLString(self.xmlFile, key.."#effectNodeId")))
 			local testAreaStart = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaStartNode"), self.i3dMappings)
 			local testAreaWidth = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaWidthNode"), self.i3dMappings)
 			local testAreaHeight = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaHeightNode"), self.i3dMappings)
-			local workingWidth = Utils.getNoNil(getXMLFloat(self.xmlFile, key.."#workingWidth"), 2);
+			local workingWidth = Utils.getNoNil(getXMLFloat(self.xmlFile, key.."#workingWidth"), 2)
 			if workAreaId == nil and self.spec_workArea.workAreas[i] ~= nil then
 				workAreaId = i
 			end
-			if effectNodeId == nil and self.spec_sprayer.effects[i] ~= nil then
-				effectNodeId = i
-			end
-			if workAreaId ~= nil and effectNodeId ~= nil and testAreaStart ~= nil and testAreaWidth ~= nil and testAreaHeight ~= nil then
-				spec.sections[i] = {workAreaId=workAreaId, effectNodeId=effectNodeId, testAreaStart=testAreaStart, testAreaWidth=testAreaWidth, testAreaHeight=testAreaHeight, active=true, workingWidth = workingWidth}
+			--if effectNodes == nil and self.spec_sprayer.effects[i] ~= nil then
+			--	effectNodes = i
+			--end
+			if workAreaId ~= nil and effectNodes ~= nil and testAreaStart ~= nil and testAreaWidth ~= nil and testAreaHeight ~= nil then
+				spec.sections[i] = {workAreaId=workAreaId, effectNodes=effectNodes, testAreaStart=testAreaStart, testAreaWidth=testAreaWidth, testAreaHeight=testAreaHeight, active=true, workingWidth = workingWidth}
 				self.spec_workArea.workAreas[workAreaId].sscId = i
 			else
 				print("Warning: Invalid sprayer section setup '"..key.."' in '" .. self.configFileName.."'")
@@ -70,7 +70,7 @@ end
 
 function SprayerSectionControl:onUpdate(dt)
 	if self.spec_ssc.isSSCReady then
-		local spec = self.spec_ssc;
+		local spec = self.spec_ssc
 		if self:getIsTurnedOn() and not self:getIsAIActive() then
 			if #spec.sections > 0 then
 				local fillType = self:getFillUnitLastValidFillType(self:getSprayerFillUnitIndex())
@@ -104,16 +104,20 @@ function SprayerSectionControl:onUpdate(dt)
 						--print(string.format("Section %d was turned %s", section.workAreaId, newState and "on" or "off"))
 						if newState then
 							if self:getAreEffectsVisible() then
-								g_effectManager:startEffect(self.spec_sprayer.effects[section.effectNodeId])
-								local sprayType = self:getActiveSprayType()
-								if sprayType ~= nil then
-									g_effectManager:startEffect(sprayType.effects[section.effectNodeId])
+								for k2,effectNodeId in pairs(section.effectNodes) do
+									g_effectManager:startEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
+									local sprayType = self:getActiveSprayType()
+									if sprayType ~= nil then
+										g_effectManager:startEffect(sprayType.effects[tonumber(effectNodeId)])
+									end
 								end
 							end
 						else
-							g_effectManager:stopEffect(self.spec_sprayer.effects[section.effectNodeId])
-							for _, sprayType in ipairs(self.spec_sprayer.sprayTypes) do
-								g_effectManager:stopEffect(sprayType.effects[section.effectNodeId])
+							for k2,effectNodeId in pairs(section.effectNodes) do
+								g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
+								for _, sprayType in ipairs(self.spec_sprayer.sprayTypes) do
+									g_effectManager:stopEffect(sprayType.effects[tonumber(effectNodeId)])
+								end
 							end
 						end
 					end
@@ -123,13 +127,18 @@ function SprayerSectionControl:onUpdate(dt)
 	end
 end
 
+--function SprayerSectionControl:onDraw()
+--end
+
 function SprayerSectionControl:onTurnedOn()
 	if self.spec_ssc.isSSCReady then
 		for k,section in pairs(self.spec_ssc.sections) do
 			if not section.active then
-				g_effectManager:stopEffect(self.spec_sprayer.effects[section.effectNodeId])
-				for _, sprayType in ipairs(self.spec_sprayer.sprayTypes) do
-					g_effectManager:stopEffect(sprayType.effects[section.effectNodeId])
+				for k2,effectNodeId in pairs(section.effectNodes) do
+					g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
+					for _, sprayType in ipairs(self.spec_sprayer.sprayTypes) do
+						g_effectManager:stopEffect(sprayType.effects[tonumber(effectNodeId)])
+					end
 				end
 			end
 		end
