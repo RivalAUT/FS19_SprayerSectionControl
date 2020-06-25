@@ -7,6 +7,8 @@ This script is beta. It should not make any problems but don't hit me if your in
 Section control allows you to turn off certain parts (sections) of your sprayer if you don't need the full working width. 
 At the moment this is done completely automatic but in future there might be an option to control it manually.
 
+The script works with fertilizer and herbicide. Herbicide works only on grown weed - the section will turn off if there is no weed visible. Pre-emergence spraying is not possible at the moment.
+
 ## What do I need?
 At first you will need the script. [Download it here.](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/FS19_SprayerSectionControl.zip)
 
@@ -21,7 +23,7 @@ The workAreas need to be set up around each spraying section, with a little over
 It is also needed to create a testArea which is a little bigger by increasing the length in driving direction for 1m.
 
 Image: *(testArea uses the height node of the workArea in this example.)*
-![workArea setup](http://rival.bplaced.net/SSC_workArea.png)
+![workArea setup](http://rival.bplaced.net/SSC_workArea2.png)
 
 #### XML part
 The XML part is mainly copy-paste. The following lines need to be copied into the sprayer's XML file.
