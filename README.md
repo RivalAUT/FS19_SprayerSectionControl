@@ -5,11 +5,24 @@ This script is beta. It should not make any problems but don't hit me if your in
 
 ## What is section control?
 Section control allows you to turn off certain parts (sections) of your sprayer if you don't need the full working width. 
-At the moment this is done completely automatic but in future there might be an option to control it manually.
+The sections can be controlled manually and automatic.
 
-The script works with fertilizer and herbicide. Herbicide works only on grown weed - the section will turn off if there is no weed visible. Pre-emergence spraying is not possible at the moment.
+The script works with fertilizer and herbicide. Automatic mode works with herbicide only on grown weed - the section will turn off if there is no weed visible. Pre-emergence spraying is only possible when using manual mode.
 
-## What do I need?
+## The HUD
+The HUD shows all sections of the sprayer. With the ON/OFF button you can switch between manual and automatic mode.
+Turning sections on or off is done by clicking on the red/yellow/green spray in the HUD.
+
+### Colors
+RED: Section is turned off.
+YELLOW: Section is turned on, but sprayer is turned off.
+GREEN: Section is turned on and sprayer is on
+
+### Keys
+LSHIFT + B to toggle HUD
+LCTRL + B to toggle mouse cursor (only when HUD is visible)
+
+## What do you need?
 At first you will need the script. [Download it here.](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/FS19_SprayerSectionControl.zip)
 
 The script alone does not give you any functionality, you need adapted sprayers too. If Giants had made one workArea per section, this would not be necessary.
@@ -50,6 +63,6 @@ Although the entries should be self-explaining I will explain them for you:
 - testAreaStartNode / WidthNode / HeightNode are indices to the corresponding i3D node. This is done via i3DMappings.
 
 
-That's it! I recommend to set the delay of all effectNodes to 0 for instant turning on/off.
+That's it!
 
 A sample sprayer (Hardi Mega 2200 from the base game) prepared for section control is available [here.](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/FS19_HardiMega2200.zip)
