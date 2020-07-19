@@ -5,7 +5,7 @@ This script is beta. It should not make any problems but don't hit me if your in
 
 ## What is section control?
 Section control allows you to turn off certain parts (sections) of your sprayer if you don't need the full working width. 
-The sections can be controlled manually and automatic.
+The sections can be controlled manually and automatically.
 
 The script works with fertilizer and herbicide. Automatic mode works with herbicide only on grown weed - the section will turn off if there is no weed visible. Pre-emergence spraying is only possible when using manual mode.
 
@@ -14,13 +14,13 @@ The HUD shows all sections of the sprayer. With the ON/OFF button you can switch
 Turning sections on or off is done by clicking on the red/yellow/green spray in the HUD.
 
 ### Colors
-RED: Section is turned off.
-YELLOW: Section is turned on, but sprayer is turned off.
-GREEN: Section is turned on and sprayer is on
+- RED: Section is turned off.
+- YELLOW: Section is turned on, but sprayer is turned off.
+- GREEN: Section is turned on and sprayer is on
 
 ### Keys
-LSHIFT + B to toggle HUD
-LCTRL + B to toggle mouse cursor (only when HUD is visible)
+- LSHIFT + B to toggle HUD
+- LCTRL + B to toggle mouse cursor (only when HUD is visible)
 
 ## What do you need?
 At first you will need the script. [Download it here.](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/FS19_SprayerSectionControl.zip)
