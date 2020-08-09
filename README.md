@@ -1,13 +1,13 @@
 # FS19_SprayerSectionControl
 Section Control for sprayers in FS19
 
-This script is beta. It should not make any problems but don't hit me if your ingame sprayer or savegame won't work anymore.
+This script is beta. It should not make any problems but there's always the possibility that something could stop working.
 
 ## What is section control?
 Section control allows you to turn off certain parts (sections) of your sprayer if you don't need the full working width. 
 The sections can be controlled manually and automatically.
 
-The script works with fertilizer and herbicide. Automatic mode works with herbicide only on grown weed - the section will turn off if there is no weed visible. Pre-emergence spraying is only possible when using manual mode.
+The script works with fertilizer and herbicide.
 
 ## The HUD
 The HUD shows all sections of the sprayer. With the ON/OFF button you can switch between manual and automatic mode.
