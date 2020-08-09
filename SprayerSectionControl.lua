@@ -197,7 +197,7 @@ function SprayerSectionControl:onUpdate(dt)
 				local sprayTypeDesc = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
 				if sprayTypeDesc ~= nil then
 					if sprayTypeDesc.isHerbicide then
-						self:setAIFruitRequirements(g_fruitTypeManager:getFruitTypeByName("weed").index, 1, 2)
+						self:setAIFruitRequirements(g_fruitTypeManager:getFruitTypeByName("weed").index, 0, 2)
 					elseif sprayTypeDesc.isFertilizer then
 						self:clearAITerrainDetailRequiredRange()
 						self:clearAITerrainDetailProhibitedRange()
