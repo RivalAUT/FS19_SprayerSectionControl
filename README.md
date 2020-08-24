@@ -31,6 +31,8 @@ But as there is only one workArea for the full working width this is not possibl
 ### How you make sprayers compatible
 Converting sprayers to work with section control is not difficult. You need some entries in the XML and one workArea per section in the i3D.
 
+**Warning: The HUD is restricted to 13 sections. This means every spray nozzle as extra section will not work properly.**
+
 #### i3D part
 The workAreas need to be set up around each spraying section, with a little overlap to the next section. 
 It is also needed to create a testArea which is a little bigger by increasing the length in driving direction for 1m.
