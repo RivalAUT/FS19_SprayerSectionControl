@@ -19,8 +19,8 @@ Turning sections on or off is done by clicking on the red/yellow/green spray in 
 - GREEN: Section is turned on and sprayer is on
 
 ### Keys
-- LSHIFT + B to toggle HUD
-- LCTRL + B to toggle mouse cursor (only when HUD is visible)
+- *LCTRL* + *B* to toggle HUD
+- *MIDDLE MOUSE BUTTON* to toggle mouse cursor (only when HUD is visible)
 
 ## What do you need?
 At first you will need the script. [Download it here.](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/FS19_SprayerSectionControl.zip)
@@ -31,7 +31,7 @@ But as there is only one workArea for the full working width this is not possibl
 ### How you make sprayers compatible
 Converting sprayers to work with section control is not difficult. You need some entries in the XML and one workArea per section in the i3D.
 
-**Warning: The HUD is restricted to 13 sections. This means every spray nozzle as extra section will not work properly.**
+**Warning: The HUD is restricted to 13 sections. If you have a sprayer with every spray nozzle as extra section you need to group the nozzles to bigger sections for a correct HUD display. In automatic mode, they will still be controlled separately.**
 
 #### i3D part
 The workAreas need to be set up around each spraying section, with a little overlap to the next section. 
@@ -62,7 +62,16 @@ Although the entries should be self-explaining I will explain them for you:
 - workingWidth is the working width of this section. All section working widths combined should be equal to the total working width (24m in this example). This is used for calculating the spray usage.
 - workAreaId is the index of the workArea in the `<workAreas>` part. The first workArea has index/id 1.
 - effectNodeId is the index of the effect node in the `<sprayer> <effects>` part. Again, the first effectNode has index/id 1. If more than one effectNodes are used for one section, you can add them like this: `effectNodeId="1 2 3 4"`
-- testAreaStartNode / WidthNode / HeightNode are indices to the corresponding i3D node. This is done via i3DMappings.
+- testAreaStartNode / testAreaWidthNode / testAreaHeightNode are indices to the i3D node.
+- To set up the groups mentioned earlier paste this before `</sprayerSectionControl>`:
+```
+  <groups>
+    <group sectionIds="1 2 3"/>
+    <group sectionIds="4 5 6"/>
+    <group sectionIds="7 8 9"/>
+  </groups>
+```
+ This will group sections 1, 2 and 3 to the first HUD section, sections 4, 5 and 6 to the second, etc. There can be up to 13 groups.
 
 
 That's it!

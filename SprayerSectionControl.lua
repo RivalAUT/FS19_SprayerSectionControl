@@ -27,6 +27,11 @@ SprayerSectionControl.HUDUVs = {
     SECTION_RIGHT_SPRAY_1 = { 756, 165, 218, 90 },
     SECTION_ONOFF = { 936, 0, 88, 88 }
 }
+SprayerSectionControl.COLOR = {
+    RED = { 0.7, 0, 0, 1 },
+    YELLOW = { 0.8, 0.5, 0, 1 },
+    GREEN = { 0, 0.7, 0, 1 },
+}
 
 function SprayerSectionControl.prerequisitesPresent(specializations)
     return true
@@ -37,24 +42,24 @@ function SprayerSectionControl.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", SprayerSectionControl)
+	SpecializationUtil.registerEventListener(vehicleType, "onDraw", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOn", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOff", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onAIImplementStart", SprayerSectionControl)
-	--SpecializationUtil.registerEventListener(vehicleType, "onDraw", SprayerSectionControl)
 end
 
 function SprayerSectionControl.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "processSprayerArea", SprayerSectionControl.processSprayerArea)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getSprayerUsage", SprayerSectionControl.getSprayerUsage)
-    SpecializationUtil.registerOverwrittenFunction(vehicleType, "removeActionEvents", SprayerSectionControl.removeActionEvents)
 end
 
 function SprayerSectionControl.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "getSprayerFullWidth", SprayerSectionControl.getSprayerFullWidth)
 	SpecializationUtil.registerFunction(vehicleType, "getActiveSprayerSectionsWidth", SprayerSectionControl.getActiveSprayerSectionsWidth)
 	SpecializationUtil.registerFunction(vehicleType, "changeSectionState", SprayerSectionControl.changeSectionState)
+	SpecializationUtil.registerFunction(vehicleType, "changeSectionGroupState", SprayerSectionControl.changeSectionGroupState)
 	SpecializationUtil.registerFunction(vehicleType, "toggleAutomaticMode", SprayerSectionControl.toggleAutomaticMode)
-	--SpecializationUtil.registerFunction(vehicleType, "createSSCHUDElement", SprayerSectionControl.createSSCHUDElement)
+	SpecializationUtil.registerFunction(vehicleType, "createSSCHUDElement", SprayerSectionControl.createSSCHUDElement)
 end
 
 function SprayerSectionControl:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
@@ -70,26 +75,19 @@ function SprayerSectionControl:onRegisterActionEvents(isActiveForInput, isActive
 		spec.actionEvents = {}
         self:clearActionEventsTable(spec.actionEvents)
 
-        if self:getIsActiveForInput(true, true) then
-            g_sprayerSectionControlHUD:setVehicle(self)																-- ..., triggerUp, triggerDown, triggerAlways, startActive
+        if self:getIsActiveForInput(true, true) then																-- ..., triggerUp, triggerDown, triggerAlways, startActive
             local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.SHOW_SSC_HUD, self, SprayerSectionControl.processActionEvent, false, true, false, true)
             local _, actionEventId2 = self:addActionEvent(spec.actionEvents, InputAction.SHOW_SSC_MOUSE, self, SprayerSectionControl.processActionEvent, false, true, false, true)
+            local _, actionEventId3 = self:addActionEvent(spec.actionEvents, InputAction.SSC_MOUSECLICK, self, SprayerSectionControl.processActionEvent, false, true, false, true)
         end
     end
 end
 
-function SprayerSectionControl:removeActionEvents(superFunc, ...)
-    local hud = g_sprayerSectionControlHUD
-    if hud ~= nil and hud:isVehicleActive(self) then
-        hud:setVehicle(nil)
-    end
-
-    return superFunc(self, ...)
-end
-
 function SprayerSectionControl:onLoad(savegame)
-	local spec = {}
+	self.spec_ssc = {}
+	local spec = self.spec_ssc
 	spec.sections = {}
+	spec.groups = {}
 	if hasXMLProperty(self.xmlFile, "vehicle.sprayerSectionControl") then
 		spec.isSSCReady = true
 	else
@@ -104,7 +102,6 @@ function SprayerSectionControl:onLoad(savegame)
 			end
 			i = i + 1
 			local workAreaId = getXMLInt(self.xmlFile, key.."#workAreaId")
-			--local sprayType = getXMLInt(self.xmlFile, key.."#sprayType")
 			local effectNodes = StringUtil.splitString(" ", StringUtil.trim(getXMLString(self.xmlFile, key.."#effectNodeId")))
 			local testAreaStart = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaStartNode"), self.i3dMappings)
 			local testAreaWidth = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaWidthNode"), self.i3dMappings)
@@ -114,67 +111,103 @@ function SprayerSectionControl:onLoad(savegame)
 				workAreaId = i
 			end
 			if workAreaId ~= nil and effectNodes ~= nil and testAreaStart ~= nil and testAreaWidth ~= nil and testAreaHeight ~= nil then
-				spec.sections[i] = {workAreaId=workAreaId, effectNodes=effectNodes, testAreaStart=testAreaStart, testAreaWidth=testAreaWidth, testAreaHeight=testAreaHeight, active=true, workingWidth = workingWidth, id=i}
+				spec.sections[i] = {workAreaId=workAreaId, effectNodes=effectNodes, testAreaStart=testAreaStart, testAreaWidth=testAreaWidth, testAreaHeight=testAreaHeight, active=true, workingWidth = workingWidth}
 				self.spec_workArea.workAreas[workAreaId].sscId = i
 				spec.sections[i].sprayType = self.spec_workArea.workAreas[workAreaId].sprayType
 			else
 				print("Warning: Invalid sprayer section setup '"..key.."' in '" .. self.configFileName.."'")
 			end
 		end
+		if hasXMLProperty(self.xmlFile, "vehicle.sprayerSectionControl.groups") then
+			local j=0
+			while true do
+				local key = string.format("vehicle.sprayerSectionControl.groups.group(%d)", j)
+				if not hasXMLProperty(self.xmlFile, key) then
+					break
+				end
+				j = j + 1
+				local sectionIds = StringUtil.splitString(" ", StringUtil.trim(getXMLString(self.xmlFile, key.."#sectionIds")))
+				if sectionIds ~= nil then
+					spec.groups[j] = sectionIds
+				end
+			end
+		else
+			for j=1, #spec.sections do
+				spec.groups[j] = {j}
+			end
+		end
+		for k,group in ipairs(spec.groups) do
+			for _,sectionId in ipairs(group) do
+				spec.sections[tonumber(sectionId)].group = k
+			end
+		end
+		
 		spec.isAutomaticMode = true
 		spec.hudActive = true
-		
-		--sectioncount --> i
-		--[[i = math.min(i, 13)
-		local midSection = math.ceil(i/2)
-		
 		spec.hud = {}
+		
+		local sections = math.min(#spec.groups, 13)
+		local midSection = math.ceil(sections/2)
 		local image = SprayerSectionControl.modDirectory .. "sschud.dds"
 		local uiScale = g_gameSettings.uiScale
-		local hudScale = 0.5
-		local w,h = getNormalizedScreenValues(i * 180 * uiScale * hudScale, 400 * uiScale * hudScale)
+		local hudScale = 0.33
+		local wpx = SprayerSectionControl.HUDUVs.SECTION_LEFT_4[3]
+		if midSection > 2 then
+			wpx = wpx + SprayerSectionControl.HUDUVs.SECTION_LEFT_3[3]
+		end
+		if midSection > 3 then
+			wpx = wpx + SprayerSectionControl.HUDUVs.SECTION_LEFT_2[3]
+		end
+		if midSection > 4 then
+			wpx = wpx + ((midSection-4) * SprayerSectionControl.HUDUVs.SECTION_LEFT_1[3])
+		end
+		wpx = SprayerSectionControl.HUDUVs.SECTION_MID[3] + 2 * wpx
+
+		local w,h = getNormalizedScreenValues(wpx * uiScale * hudScale, 350 * uiScale * hudScale)
+		local w2,h2 = getNormalizedScreenValues((wpx+80) * uiScale * hudScale, 350 * uiScale * hudScale)
 		local baseX = 1-g_safeFrameOffsetX-w
 		local baseY = 0.6
-		
-		--spec.hud.buttonMid = self:createSSCHUDElement(image, baseX, baseY, w, h, SprayerSectionControl.HUDUVs.SECTION_MID_SPRAY, SprayerSectionControl.changeSectionState, midSection)
-		
+
+		spec.hud.midSection = midSection
 		spec.hud.sections = {}
 		spec.hud.buttons = {}
 		local lastW, lastH
 		local offsetX = 0
-		for j=1, i do
+		for j=1, sections do
 			if j < midSection then
-				local jj = math.min(midSection-j,4)
+				local jj = math.max(5-j,1)
 				spec.hud.sections[j], lastW, lastH = self:createSSCHUDElement(image, baseX+offsetX, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs["SECTION_LEFT_"..tostring(jj)], Overlay.ALIGN_VERTICAL_BOTTOM)
-				spec.hud.buttons[j],_,_ = self:createSSCHUDElement(image, baseX+offsetX, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs[(jj == 1 or jj == 4) and "SECTION_LEFT_SPRAY_1" or "SECTION_LEFT_SPRAY_2"], Overlay.ALIGN_VERTICAL_TOP, SprayerSectionControl.changeSectionState, j)
+				spec.hud.sections[j]:setPosition(baseX+offsetX+lastW/2)
+				spec.hud.buttons[j],_,_ = self:createSSCHUDElement(image, baseX+offsetX+lastW/2, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs[(jj == 1 or jj == 4) and "SECTION_LEFT_SPRAY_1" or "SECTION_LEFT_SPRAY_2"], Overlay.ALIGN_VERTICAL_TOP, self.changeSectionGroupState, j)
 				offsetX = offsetX + lastW
 			end
 			if j == midSection then
 				spec.hud.sections[j], lastW, lastH = self:createSSCHUDElement(image, baseX+offsetX, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs.SECTION_MID, Overlay.ALIGN_VERTICAL_BOTTOM)
-				spec.hud.buttons[j],_,_ = self:createSSCHUDElement(image, baseX+offsetX, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs[(jj == 1 or jj == 4) and "SECTION_RIGHT_SPRAY_1" or "SECTION_RIGHT_SPRAY_2"], Overlay.ALIGN_VERTICAL_TOP, SprayerSectionControl.changeSectionState, j)
+				spec.hud.sections[j]:setPosition(baseX+offsetX+lastW/2)
+				spec.hud.buttons[j],_,_ = self:createSSCHUDElement(image, baseX+offsetX+lastW/2, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs.SECTION_MID_SPRAY, Overlay.ALIGN_VERTICAL_TOP, self.changeSectionGroupState, j)
 				offsetX = offsetX + lastW
 			end
 			if j > midSection then
-				local jj = math.min(j-midSection,4)
+				local jj = math.max(j-sections+4,1)
 				spec.hud.sections[j], lastW, lastH = self:createSSCHUDElement(image, baseX+offsetX, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs["SECTION_RIGHT_"..tostring(jj)], Overlay.ALIGN_VERTICAL_BOTTOM)
-				spec.hud.buttons[j],_,_ = self:createSSCHUDElement(image, baseX+offsetX, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs[(jj == 1 or jj == 4) and "SECTION_RIGHT_SPRAY_1" or "SECTION_RIGHT_SPRAY_2"], Overlay.ALIGN_VERTICAL_TOP, SprayerSectionControl.changeSectionState, j)
+				spec.hud.sections[j]:setPosition(baseX+offsetX+lastW/2)
+				spec.hud.buttons[j],_,_ = self:createSSCHUDElement(image, baseX+offsetX+lastW/2, baseY, hudScale*uiScale, SprayerSectionControl.HUDUVs[(jj == 1 or jj == 4) and "SECTION_RIGHT_SPRAY_1" or "SECTION_RIGHT_SPRAY_2"], Overlay.ALIGN_VERTICAL_TOP, self.changeSectionGroupState, j)
 				offsetX = offsetX + lastW
 			end
 		end
-		spec.hud.bg = Overlay:new(image, 1-g_safeFrameOffsetX, baseY, w, h)
+		spec.hud.autoModeButton,_,_ = self:createSSCHUDElement(image, baseX+lastW/2, baseY+lastH, hudScale*uiScale*1.75, SprayerSectionControl.HUDUVs.SECTION_ONOFF, Overlay.ALIGN_VERTICAL_BOTTOM, self.toggleAutomaticMode)
+		spec.hud.bg = Overlay:new(image, self.spec_ssc.hud.sections[midSection].x, baseY+h/5, w2, h)
 		spec.hud.bg:setUVs(getNormalizedUVs(SprayerSectionControl.HUDUVs.BACKGROUND, { 1024, 256 }))
-		spec.hud.bg:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_RIGHT)
-		spec.hud.bg:setColor(0.015, 0.015, 0.015, 0.8)]]
+		spec.hud.bg:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
+		spec.hud.bg:setColor(0.015, 0.015, 0.015, 0.9)
 	end
-	
-	self.spec_ssc = spec
 end
 
 function SprayerSectionControl:onPostLoad(savegame)
-	if g_client.serverStreamId ~= 0 then --g_currentMission.connectedToDedicatedServer
-		local spec = self.spec_ssc -- multiplayer --> adjust testAreas
+	if g_client.serverStreamId ~= 0 then
+		local spec = self.spec_ssc -- multiplayer --> make testAreas bigger
 		if spec.isSSCReady then
-			print("adjusting section testAreas for online usage")
+			--print("adjusting section testAreas for online usage")
 			for k,section in pairs(spec.sections) do
 				local x, y, z = getTranslation(section.testAreaStart)
 				setTranslation(section.testAreaStart, x, y, z+0.8)
@@ -183,6 +216,32 @@ function SprayerSectionControl:onPostLoad(savegame)
 			end
 		end
 	end
+end
+
+function SprayerSectionControl:createSSCHUDElement(image, x, y, hudScale, uvs, alignment, onClickCallback, sectionId)
+	local w,h = getNormalizedScreenValues(uvs[3]*hudScale, uvs[4]*hudScale)
+	local overlay = Overlay:new(image, x, y, w, h)
+	overlay:setUVs(getNormalizedUVs(uvs, { 1024, 256 }))
+	overlay:setAlignment(alignment, Overlay.ALIGN_HORIZONTAL_CENTER)
+	overlay:setIsVisible(true)
+	if onClickCallback ~= nil then
+		overlay.onClickCallback = onClickCallback
+		if sectionId ~= nil then
+			overlay.sectionId = sectionId
+			if self.spec_ssc.sections[sectionId].active then
+				if self:getIsTurnedOn() then
+					overlay:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
+				else
+					overlay:setColor(unpack(SprayerSectionControl.COLOR.YELLOW))
+				end
+			else
+				overlay:setColor(unpack(SprayerSectionControl.COLOR.RED))
+			end
+		else
+			overlay:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
+		end
+	end
+	return overlay, w, h
 end
 
 function SprayerSectionControl:onUpdate(dt)
@@ -234,53 +293,21 @@ function SprayerSectionControl:onUpdate(dt)
 	end
 end
 
---[[function SprayerSectionControl:mouseEventSSC(posX, posY, isDown, isUp, mousebutton)
-	print("mouseEvent")
-	if self.spec_ssc.isSSCReady then
-		for i,button in self.spec_ssc.hud.buttons do
-			if button:isActive() and button:getIsVisible() then
-				local x, y = button:getPosition()
-				local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, x, y, button:getWidth(), button:getHeight())
-
-				-- handle click/activate only if event has not been consumed, yet
-				if not eventUsed then
-					if cursorInElement then --and not FocusManager:isLocked() then
-						if isDown and mousebutton == Input.MOUSE_BUTTON_LEFT then
-							eventUsed = true
-							button.mouseDown = true
-						end
-
-						if isUp and mousebutton == Input.MOUSE_BUTTON_LEFT and button.mouseDown then
-							--g_gui.soundPlayer:playSample(self.clickSoundName)
-
-							button.mouseDown = false
-							button:raiseCallback("onClickCallback", button.section)
-							--button:onClickCallback(button.section)
-
-							eventUsed = true
-						end
-					end
-				end
-			end
+function SprayerSectionControl:onDraw()
+	if self.spec_ssc.hudActive and self.spec_ssc.isSSCReady then
+		self.spec_ssc.hud.bg:render()
+		for k,hud in pairs(self.spec_ssc.hud.sections) do
+			hud:render()
 		end
+		for k,hud in pairs(self.spec_ssc.hud.buttons) do
+			hud:render()
+		end
+		self.spec_ssc.hud.autoModeButton:render()
+		setTextAlignment(RenderText.ALIGN_CENTER)
+		renderText(self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].x, self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].y+self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].offsetY+self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].height*1.1, 
+				   0.013*g_gameSettings.uiScale, self.spec_ssc.isAutomaticMode and g_i18n:getText("SSC_AUTOMATIC_MODE") or g_i18n:getText("SSC_MANUAL_MODE"))
 	end
 end
-]]
---FSBaseMission.mouseEvent = Utils.appendedFunction(FSBaseMission.mouseEvent, SprayerSectionControl.mouseEventSSC)
-
---[[function SprayerSectionControl:createSSCHUDElement(image, x, y, hudScale, uvs, alignment, onClickCallback, sectionId)
-	local w,h = getNormalizedScreenValues(uvs[3]*hudScale, uvs[4]*hudScale)
-	local overlay = Overlay:new(image, x, y, w, h)
-	overlay:setUVs(getNormalizedUVs(uvs, { 1024, 256 }))
-	overlay:setAlignment(alignment, Overlay.ALIGN_HORIZONTAL_CENTER)
-	overlay:setIsVisible(true)
-	if onClickCallback ~= nil then
-		overlay.mouseDown = false
-		overlay.onClickCallback = onClickCallback
-		overlay.sectionId = sectionId
-	end
-	return overlay, w, h
-end]]
 
 function SprayerSectionControl:toggleAutomaticMode(active)
 	if active ~= nil then
@@ -289,9 +316,15 @@ function SprayerSectionControl:toggleAutomaticMode(active)
 		self.spec_ssc.isAutomaticMode = not self.spec_ssc.isAutomaticMode
 	end
 	if self.spec_ssc.isAutomaticMode then
-		g_sprayerSectionControlHUD.autoModeButton:setColor(unpack(g_sprayerSectionControlHUD.COLOR.GREEN))
+		self.spec_ssc.hud.autoModeButton:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
 	else
-		g_sprayerSectionControlHUD.autoModeButton:setColor(unpack(g_sprayerSectionControlHUD.COLOR.RED))
+		self.spec_ssc.hud.autoModeButton:setColor(unpack(SprayerSectionControl.COLOR.RED))
+	end
+end
+
+function SprayerSectionControl:changeSectionGroupState(groupId)
+	for _,sectionId in ipairs(self.spec_ssc.groups[groupId]) do
+		self:changeSectionState(self.spec_ssc.sections[tonumber(sectionId)])
 	end
 end
 
@@ -313,9 +346,9 @@ function SprayerSectionControl:changeSectionState(section, newState)
 					end
 				end
 			end
-			g_sprayerSectionControlHUD.buttons[section.id]:setColor(unpack(g_sprayerSectionControlHUD.COLOR.GREEN))
+			self.spec_ssc.hud.buttons[section.group]:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
 		else
-			g_sprayerSectionControlHUD.buttons[section.id]:setColor(unpack(g_sprayerSectionControlHUD.COLOR.YELLOW))
+			self.spec_ssc.hud.buttons[section.group]:setColor(unpack(SprayerSectionControl.COLOR.YELLOW))
 		end
 	else
 		for k2,effectNodeId in pairs(section.effectNodes) do
@@ -327,7 +360,7 @@ function SprayerSectionControl:changeSectionState(section, newState)
 				g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
 			end
 		end
-		g_sprayerSectionControlHUD.buttons[section.id]:setColor(unpack(g_sprayerSectionControlHUD.COLOR.RED))
+		self.spec_ssc.hud.buttons[section.group]:setColor(unpack(SprayerSectionControl.COLOR.RED))
 	end
 end
 
@@ -342,7 +375,7 @@ function SprayerSectionControl:onTurnedOn()
 					end
 				end
 			else
-				g_sprayerSectionControlHUD.buttons[section.id]:setColor(unpack(g_sprayerSectionControlHUD.COLOR.GREEN))
+				self.spec_ssc.hud.buttons[section.group]:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
 			end
 		end
 	end
@@ -352,24 +385,11 @@ function SprayerSectionControl:onTurnedOff()
 	if self.spec_ssc.isSSCReady then
 		for k,section in pairs(self.spec_ssc.sections) do
 			if section.active then
-				g_sprayerSectionControlHUD.buttons[section.id]:setColor(unpack(g_sprayerSectionControlHUD.COLOR.YELLOW))
+				self.spec_ssc.hud.buttons[section.group]:setColor(unpack(SprayerSectionControl.COLOR.YELLOW))
 			end
 		end
 	end
 end
-
---[[function SprayerSectionControl:onDraw()
-	if self.spec_ssc.isSSCReady then
-		local spec = self.spec_ssc
-		spec.hud.bg:render()
-		for k,hud in pairs(spec.hud.sections) do
-			hud:render()
-		end
-		for k,hud in pairs(spec.hud.buttons) do
-			hud:render()
-		end
-	end
-end]]
 
 function SprayerSectionControl:onAIImplementStart() -- turn on every section at AI hire
 	if self.spec_ssc.isSSCReady then
@@ -418,11 +438,77 @@ end
 
 function SprayerSectionControl.processActionEvent(self, actionName, inputValue, callbackState, isAnalog)
 	if actionName == "SHOW_SSC_HUD" then
-		g_sprayerSectionControlHUD.hudActive = not g_sprayerSectionControlHUD.hudActive
+		self.spec_ssc.hudActive = not self.spec_ssc.hudActive
+		if not self.spec_ssc.hudActive and g_inputBinding:getShowMouseCursor() then
+			g_inputBinding:setShowMouseCursor(false)
+			if self.spec_enterable ~= nil and self.spec_enterable.cameras ~= nil then
+				for _, camera in pairs(self.spec_enterable.cameras) do
+					camera.allowTranslation = true
+					camera.isRotatable = true
+				end
+			end
+		end
 	end
 	if actionName == "SHOW_SSC_MOUSE" then
-		if g_sprayerSectionControlHUD.hudActive then
-			g_sprayerSectionControlHUD:toggleMouseCursor()
+		if self.spec_ssc.hudActive then
+			g_inputBinding:setShowMouseCursor(not g_inputBinding:getShowMouseCursor())
+			--[[if g_inputBinding:getShowMouseCursor() then
+				if self.spec_enterable ~= nil and self.spec_enterable.cameras ~= nil then
+					for _, camera in pairs(self.spec_enterable.cameras) do
+						camera.allowTranslation = false
+						camera.isRotatable = false
+					end
+				end
+			else
+				if self.spec_enterable ~= nil and self.spec_enterable.cameras ~= nil then
+					for _, camera in pairs(self.spec_enterable.cameras) do
+						camera.allowTranslation = true
+						camera.isRotatable = true
+					end
+				end
+			end]]
+			
+			if g_inputBinding:getShowMouseCursor() then
+				g_inputBinding:setContext("SSC_HUD", true, false)
+
+				local _, eventId = g_inputBinding:registerActionEvent(InputAction.SHOW_SSC_MOUSE, self, SprayerSectionControl.processActionEvent, false, true, false, true)
+				local _, eventId2 = g_inputBinding:registerActionEvent(InputAction.SSC_MOUSECLICK, self, SprayerSectionControl.processActionEvent, false, true, false, true)
+				g_inputBinding:setActionEventTextVisibility(eventId, false)
+				g_inputBinding:setActionEventTextVisibility(eventId2, false)
+			else
+				g_inputBinding:removeActionEventsByTarget(self)
+				g_inputBinding:revertContext(true) -- revert and clear message context
+			end
+		end
+	end
+	if actionName == "SSC_MOUSECLICK" then
+		if self.spec_ssc.hudActive then
+			local posX, posY = g_inputBinding:getMousePosition()
+			
+			if g_inputBinding:getShowMouseCursor() and g_gui.currentGui == nil then
+				local eventUsed = false
+				if not self.spec_ssc.isAutomaticMode then
+					for i,button in ipairs(self.spec_ssc.hud.buttons) do
+						local x, y = button:getPosition()
+						local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, x+button.offsetX, y+button.offsetY, button.width, button.height)
+						-- handle click/activate only if event has not been consumed, yet
+						if not eventUsed then
+							if cursorInElement then
+								button.onClickCallback(self, button.sectionId)
+								eventUsed = true
+								break
+							end
+						end
+					end
+				end
+				if not eventUsed then
+					local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, self.spec_ssc.hud.autoModeButton.x+self.spec_ssc.hud.autoModeButton.offsetX, self.spec_ssc.hud.autoModeButton.y+self.spec_ssc.hud.autoModeButton.offsetY, self.spec_ssc.hud.autoModeButton.width, self.spec_ssc.hud.autoModeButton.height)
+					if cursorInElement then
+						self.spec_ssc.hud.autoModeButton.onClickCallback(self)
+						eventUsed = true
+					end
+				end
+			end
 		end
 	end
 end

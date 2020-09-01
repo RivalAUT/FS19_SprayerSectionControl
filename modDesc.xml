@@ -11,40 +11,36 @@
 		</en>
     </description>
     <author>Rival</author>
-    <version>0.2.1.0</version>
+    <version>0.3.0.0</version>
     <iconFilename>icon.dds</iconFilename>
     <multiplayer supported="true"/>
 	
     <extraSourceFiles>
         <sourceFile filename="loader.lua" />
-        <!--sourceFile filename="AddSpecialization.lua"/-->
     </extraSourceFiles>
-	
-	<!--addSpecialization>
-		<specialization name="sprayerSectionControl" className="SprayerSectionControl" filename="SprayerSectionControl.lua" l10nNameTag="GAME_EXTENSION" debug="false">
-			<restrictions state="0" name="sprayer" /> <!-- required ->
-			<restrictions state="1" name="sowingMachine" /> <!-- unallowed ->
-			<restrictions state="1" name="cultivator" /> <!-- unallowed ->
-		</specialization>
-	</addSpecialization-->
 	
 	<inputBinding>
         <actionBinding action="SHOW_SSC_HUD">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_lshift KEY_b" />
+            <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_b" />
         </actionBinding>
         <actionBinding action="SHOW_SSC_MOUSE">
-            <binding device="KB_MOUSE_DEFAULT" input="KEY_lctrl KEY_b" />
+            <binding device="KB_MOUSE_DEFAULT" input="MOUSE_BUTTON_MIDDLE" />
+        </actionBinding>
+        <actionBinding action="SSC_MOUSECLICK">
+			<binding device="KB_MOUSE_DEFAULT" input="MOUSE_BUTTON_LEFT" />
         </actionBinding>
 	</inputBinding>
 	
     <actions>
         <action name="SHOW_SSC_HUD" category="VEHICLE "/>
         <action name="SHOW_SSC_MOUSE" category="VEHICLE" />
+        <action name="SSC_MOUSECLICK" category="VEHICLE" />
     </actions>
 
     <l10n>
         <text name="input_SHOW_SSC_HUD"><en>SSC: HUD on/off</en><de>SSC: HUD ein/aus</de></text>
         <text name="input_SHOW_SSC_MOUSE"><en>SSC: Mouse cursor</en><de>SSC: Mauszeiger</de></text>
+        <text name="input_SSC_MOUSECLICK"><en>SSC: Mouse click</en><de>SSC: Maus Klick</de></text>
         <text name="SSC_AUTOMATIC_MODE"><en>AUTOMATIC MODE</en><de>AUTOMATIK-MODUS</de></text>
         <text name="SSC_MANUAL_MODE"><en>MANUAL MODE</en><de>MANUELLER MODUS</de></text>
     </l10n>
