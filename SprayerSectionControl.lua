@@ -102,7 +102,8 @@ function SprayerSectionControl:onLoad(savegame)
 			end
 			i = i + 1
 			local workAreaId = getXMLInt(self.xmlFile, key.."#workAreaId")
-			local effectNodes = StringUtil.splitString(" ", StringUtil.trim(getXMLString(self.xmlFile, key.."#effectNodeId")))
+			--local effectNodes = StringUtil.splitString(" ", StringUtil.trim(getXMLString(self.xmlFile, key.."#effectNodeId")))
+			local effectNodes = StringUtil.getVectorNFromString(getXMLString(self.xmlFile, key.."#effectNodeId"))
 			local testAreaStart = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaStartNode"), self.i3dMappings)
 			local testAreaWidth = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaWidthNode"), self.i3dMappings)
 			local testAreaHeight = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaHeightNode"), self.i3dMappings)
@@ -229,11 +230,11 @@ function SprayerSectionControl:createSSCHUDElement(image, x, y, hudScale, uvs, a
 		if sectionId ~= nil then
 			overlay.sectionId = sectionId
 			if self.spec_ssc.sections[sectionId].active then
-				if self:getIsTurnedOn() then
-					overlay:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
-				else
+				--if self:getIsTurnedOn() then
+				--	overlay:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
+				--else
 					overlay:setColor(unpack(SprayerSectionControl.COLOR.YELLOW))
-				end
+				--end
 			else
 				overlay:setColor(unpack(SprayerSectionControl.COLOR.RED))
 			end
