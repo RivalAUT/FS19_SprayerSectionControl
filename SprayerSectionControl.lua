@@ -45,7 +45,6 @@ function SprayerSectionControl.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onDraw", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOn", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOff", SprayerSectionControl)
-	SpecializationUtil.registerEventListener(vehicleType, "onAIImplementStart", SprayerSectionControl)
 end
 
 function SprayerSectionControl.registerOverwrittenFunctions(vehicleType)
@@ -102,7 +101,6 @@ function SprayerSectionControl:onLoad(savegame)
 			end
 			i = i + 1
 			local workAreaId = getXMLInt(self.xmlFile, key.."#workAreaId")
-			--local effectNodes = StringUtil.splitString(" ", StringUtil.trim(getXMLString(self.xmlFile, key.."#effectNodeId")))
 			local effectNodes = StringUtil.getVectorNFromString(getXMLString(self.xmlFile, key.."#effectNodeId"))
 			local testAreaStart = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaStartNode"), self.i3dMappings)
 			local testAreaWidth = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaWidthNode"), self.i3dMappings)
@@ -143,12 +141,33 @@ function SprayerSectionControl:onLoad(savegame)
 			end
 		end
 		
+		spec.herbicideQuery = FieldCropsQuery:new(g_currentMission.terrainDetailId)
+		local desc = g_fruitTypeManager:getWeedFruitType()
+		spec.herbicideQuery:addRequiredCropType(g_currentMission.fruits[desc.index].id, 1, 3, desc.startStateChannel, desc.numStateChannels, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
+		
+		spec.fertilizerQuery = FieldCropsQuery:new(g_currentMission.terrainDetailId)
+		spec.fertilizerQuery:addRequiredGroundValue(g_currentMission.cultivatorValue, g_currentMission.plowValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
+		spec.fertilizerQuery:addRequiredGroundValue(g_currentMission.sowingValue, g_currentMission.sowingWidthValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
+		spec.fertilizerQuery:addRequiredGroundValue(g_currentMission.grassValue, g_currentMission.grassValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
+		local fillType = self:getFillUnitLastValidFillType(self:getSprayerFillUnitIndex())
+		if fillType == FillType.UNKNOWN then
+			fillType = self:getFillUnitFirstSupportedFillType(self:getSprayerFillUnitIndex())
+		end
+		local sprayTypeDesc = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
+		spec.fertilizerQuery:addProhibitedGroundValue(sprayTypeDesc.groundType, sprayTypeDesc.groundType, g_currentMission.sprayFirstChannel, g_currentMission.sprayNumChannels)
+		spec.fertilizerQuery:addProhibitedGroundValue(g_currentMission.sprayLevelMaxValue, g_currentMission.sprayLevelMaxValue, g_currentMission.sprayLevelFirstChannel, g_currentMission.sprayLevelNumChannels)
+		
 		spec.isAutomaticMode = true
 		spec.hudActive = true
 		spec.hud = {}
 		
 		local sections = math.min(#spec.groups, 13)
 		local midSection = math.ceil(sections/2)
+		local even = false
+		if midSection == sections/2 then -- section count even --> no middle part in HUD
+			midSection = midSection+1
+			even = true
+		end
 		local image = SprayerSectionControl.modDirectory .. "sschud.dds"
 		local uiScale = g_gameSettings.uiScale
 		local hudScale = 0.33
@@ -162,14 +181,18 @@ function SprayerSectionControl:onLoad(savegame)
 		if midSection > 4 then
 			wpx = wpx + ((midSection-4) * SprayerSectionControl.HUDUVs.SECTION_LEFT_1[3])
 		end
-		wpx = SprayerSectionControl.HUDUVs.SECTION_MID[3] + 2 * wpx
+		if even then
+			wpx = 2 * wpx
+			midSection = midSection-0.5
+		else
+			wpx = SprayerSectionControl.HUDUVs.SECTION_MID[3] + 2 * wpx
+		end
 
 		local w,h = getNormalizedScreenValues(wpx * uiScale * hudScale, 350 * uiScale * hudScale)
 		local w2,h2 = getNormalizedScreenValues((wpx+80) * uiScale * hudScale, 350 * uiScale * hudScale)
 		local baseX = 1-g_safeFrameOffsetX-w
 		local baseY = 0.6
 
-		spec.hud.midSection = midSection
 		spec.hud.sections = {}
 		spec.hud.buttons = {}
 		local lastW, lastH
@@ -196,8 +219,9 @@ function SprayerSectionControl:onLoad(savegame)
 				offsetX = offsetX + lastW
 			end
 		end
+		spec.hud.midSection = math.ceil(midSection)
 		spec.hud.autoModeButton,_,_ = self:createSSCHUDElement(image, baseX+lastW/2, baseY+lastH, hudScale*uiScale*1.75, SprayerSectionControl.HUDUVs.SECTION_ONOFF, Overlay.ALIGN_VERTICAL_BOTTOM, self.toggleAutomaticMode)
-		spec.hud.bg = Overlay:new(image, self.spec_ssc.hud.sections[midSection].x, baseY+h/5, w2, h)
+		spec.hud.bg = Overlay:new(image, self.spec_ssc.hud.sections[spec.hud.midSection].x+(even and self.spec_ssc.hud.sections[spec.hud.midSection].offsetX or 0), baseY+h/5, w2, h)
 		spec.hud.bg:setUVs(getNormalizedUVs(SprayerSectionControl.HUDUVs.BACKGROUND, { 1024, 256 }))
 		spec.hud.bg:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
 		spec.hud.bg:setColor(0.015, 0.015, 0.015, 0.9)
@@ -208,7 +232,6 @@ function SprayerSectionControl:onPostLoad(savegame)
 	if g_client.serverStreamId ~= 0 then
 		local spec = self.spec_ssc -- multiplayer --> make testAreas bigger
 		if spec.isSSCReady then
-			--print("adjusting section testAreas for online usage")
 			for k,section in pairs(spec.sections) do
 				local x, y, z = getTranslation(section.testAreaStart)
 				setTranslation(section.testAreaStart, x, y, z+0.8)
@@ -230,11 +253,7 @@ function SprayerSectionControl:createSSCHUDElement(image, x, y, hudScale, uvs, a
 		if sectionId ~= nil then
 			overlay.sectionId = sectionId
 			if self.spec_ssc.sections[sectionId].active then
-				--if self:getIsTurnedOn() then
-				--	overlay:setColor(unpack(SprayerSectionControl.COLOR.GREEN))
-				--else
-					overlay:setColor(unpack(SprayerSectionControl.COLOR.YELLOW))
-				--end
+				overlay:setColor(unpack(SprayerSectionControl.COLOR.YELLOW))
 			else
 				overlay:setColor(unpack(SprayerSectionControl.COLOR.RED))
 			end
@@ -248,28 +267,8 @@ end
 function SprayerSectionControl:onUpdate(dt)
 	if self.spec_ssc.isSSCReady then
 		local spec = self.spec_ssc
-		if spec.isAutomaticMode and self:getIsTurnedOn() and not self:getIsAIActive() then
+		if spec.isAutomaticMode and self:getIsTurnedOn() then
 			if #spec.sections > 0 then
-				local fillType = self:getFillUnitLastValidFillType(self:getSprayerFillUnitIndex())
-				if fillType == FillType.UNKNOWN then
-					fillType = self:getFillUnitFirstSupportedFillType(self:getSprayerFillUnitIndex())
-				end
-				local sprayTypeDesc = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
-				if sprayTypeDesc ~= nil then
-					if sprayTypeDesc.isHerbicide then
-						self:setAIFruitRequirements(g_fruitTypeManager:getFruitTypeByName("weed").index, 0, 2)
-					elseif sprayTypeDesc.isFertilizer then
-						self:clearAITerrainDetailRequiredRange()
-						self:clearAITerrainDetailProhibitedRange()
-						self:addAITerrainDetailRequiredRange(g_currentMission.plowValue, g_currentMission.plowValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
-						self:addAITerrainDetailRequiredRange(g_currentMission.cultivatorValue, g_currentMission.cultivatorValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
-						self:addAITerrainDetailRequiredRange(g_currentMission.sowingValue, g_currentMission.sowingValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
-						self:addAITerrainDetailRequiredRange(g_currentMission.sowingWidthValue, g_currentMission.sowingWidthValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
-						self:addAITerrainDetailRequiredRange(g_currentMission.grassValue, g_currentMission.grassValue, g_currentMission.terrainDetailTypeFirstChannel, g_currentMission.terrainDetailTypeNumChannels)
-						self:addAITerrainDetailProhibitedRange(sprayTypeDesc.groundType, sprayTypeDesc.groundType, g_currentMission.sprayFirstChannel, g_currentMission.sprayNumChannels)
-						self:addAITerrainDetailProhibitedRange(g_currentMission.sprayLevelMaxValue, g_currentMission.sprayLevelMaxValue, g_currentMission.sprayLevelFirstChannel, g_currentMission.sprayLevelNumChannels)
-					end
-				end
 				for k,section in pairs(spec.sections) do
 					local sActive = true
 					if section.sprayType ~= nil then
@@ -279,10 +278,19 @@ function SprayerSectionControl:onUpdate(dt)
 						end
 					end
 					if sActive then
+						local fillType = self:getFillUnitLastValidFillType(self:getSprayerFillUnitIndex())
+						if fillType == FillType.UNKNOWN then
+							fillType = self:getFillUnitFirstSupportedFillType(self:getSprayerFillUnitIndex())
+						end
+						local sprayTypeDesc = g_sprayTypeManager:getSprayTypeByFillTypeIndex(fillType)
+						local query = spec.fertilizerQuery
+						if sprayTypeDesc ~= nil and sprayTypeDesc.isHerbicide then
+							query = spec.herbicideQuery
+						end
 						local sx,_,sz = getWorldTranslation(section.testAreaStart)
 						local wx,_,wz = getWorldTranslation(section.testAreaWidth)
 						local hx,_,hz = getWorldTranslation(section.testAreaHeight)
-						local area, totalArea = AIVehicleUtil.getAIFruitArea(sx, sz, wx, wz, hx, hz, self:getFieldCropsQuery())
+						local area, totalArea = AIVehicleUtil.getAIFruitArea(sx, sz, wx, wz, hx, hz, query)
 						local newState = area > 0 and self:getLastSpeed() > 1
 						if section.active ~= newState then
 							self:changeSectionState(section, newState)
@@ -333,7 +341,6 @@ function SprayerSectionControl:changeSectionState(section, newState)
 	if newState == nil then
 		newState = not section.active
 	end
-	--print(string.format("Changed section %d state to %s", section.workAreaId, newState and "true" or "false"))
 	section.active = newState
 	if newState then
 		if self:getIsTurnedOn() then
@@ -392,14 +399,6 @@ function SprayerSectionControl:onTurnedOff()
 	end
 end
 
-function SprayerSectionControl:onAIImplementStart() -- turn on every section at AI hire
-	if self.spec_ssc.isSSCReady then
-		for k,section in pairs(self.spec_ssc.sections) do
-			self:changeSectionState(section, true)
-		end
-	end
-end
-
 function SprayerSectionControl:getSprayerUsage(superFunc, fillType, dt)
 	local origUsage = superFunc(self, fillType, dt)
 	if self.spec_ssc.isSSCReady then
@@ -453,22 +452,6 @@ function SprayerSectionControl.processActionEvent(self, actionName, inputValue, 
 	if actionName == "SHOW_SSC_MOUSE" then
 		if self.spec_ssc.hudActive then
 			g_inputBinding:setShowMouseCursor(not g_inputBinding:getShowMouseCursor())
-			--[[if g_inputBinding:getShowMouseCursor() then
-				if self.spec_enterable ~= nil and self.spec_enterable.cameras ~= nil then
-					for _, camera in pairs(self.spec_enterable.cameras) do
-						camera.allowTranslation = false
-						camera.isRotatable = false
-					end
-				end
-			else
-				if self.spec_enterable ~= nil and self.spec_enterable.cameras ~= nil then
-					for _, camera in pairs(self.spec_enterable.cameras) do
-						camera.allowTranslation = true
-						camera.isRotatable = true
-					end
-				end
-			end]]
-			
 			if g_inputBinding:getShowMouseCursor() then
 				g_inputBinding:setContext("SSC_HUD", true, false)
 
