@@ -71,8 +71,9 @@ Although the entries should be self-explaining I will explain them for you:
     <group sectionIds="7 8 9"/>
   </groups>
 ```
- This will group sections 1, 2 and 3 to the first HUD section, sections 4, 5 and 6 to the second, etc. There can be up to 13 groups.
+This will group sections 1, 2 and 3 to the first HUD section, sections 4, 5 and 6 to the second, etc. There can be up to 13 groups.
 
+For a more convenient way of XML editing you can use my [XML Helper tool](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/XML%20Helper/SSC_XML_Helper.exe) which automatically generates the XML entries.
 
 That's it!
 
