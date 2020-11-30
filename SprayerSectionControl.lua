@@ -43,6 +43,9 @@ function SprayerSectionControl.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onDraw", SprayerSectionControl)
+	SpecializationUtil.registerEventListener(vehicleType, "onPostAttach", SprayerSectionControl)
+	SpecializationUtil.registerEventListener(vehicleType, "onPreDetach", SprayerSectionControl)
+	SpecializationUtil.registerEventListener(vehicleType, "onLeaveRootVehicle", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOn", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onTurnedOff", SprayerSectionControl)
 end
@@ -50,6 +53,7 @@ end
 function SprayerSectionControl.registerOverwrittenFunctions(vehicleType)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "processSprayerArea", SprayerSectionControl.processSprayerArea)
 	SpecializationUtil.registerOverwrittenFunction(vehicleType, "getSprayerUsage", SprayerSectionControl.getSprayerUsage)
+	SpecializationUtil.registerOverwrittenFunction(vehicleType, "doCheckSpeedLimit", SprayerSectionControl.doCheckSpeedLimit)
 end
 
 function SprayerSectionControl.registerFunctions(vehicleType)
@@ -77,7 +81,6 @@ function SprayerSectionControl:onRegisterActionEvents(isActiveForInput, isActive
         if self:getIsActiveForInput(true, true) then																-- ..., triggerUp, triggerDown, triggerAlways, startActive
             local _, actionEventId = self:addActionEvent(spec.actionEvents, InputAction.SHOW_SSC_HUD, self, SprayerSectionControl.processActionEvent, false, true, false, true)
             local _, actionEventId2 = self:addActionEvent(spec.actionEvents, InputAction.SHOW_SSC_MOUSE, self, SprayerSectionControl.processActionEvent, false, true, false, true)
-            local _, actionEventId3 = self:addActionEvent(spec.actionEvents, InputAction.SSC_MOUSECLICK, self, SprayerSectionControl.processActionEvent, false, true, false, true)
         end
     end
 end
@@ -291,11 +294,43 @@ function SprayerSectionControl:onUpdate(dt)
 						local wx,_,wz = getWorldTranslation(section.testAreaWidth)
 						local hx,_,hz = getWorldTranslation(section.testAreaHeight)
 						local area, totalArea = AIVehicleUtil.getAIFruitArea(sx, sz, wx, wz, hx, hz, query)
-						local newState = area > 0 and self:getLastSpeed() > 1
+						local isAreaOwned = SprayerSectionControl.getIsAreaOwned(self:getActiveFarm(), sx, sz, wx, wz, hx, hz) -- check if is owned area
+						local newState = area > 0 and self:getLastSpeed() > 1 and isAreaOwned
 						if section.active ~= newState then
 							self:changeSectionState(section, newState)
 						end
 					end
+				end
+			end
+		end
+	end
+end
+
+function SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseButton)
+	local eventUsed = false
+	local controlledVehicle = g_currentMission.controlledVehicle
+	if controlledVehicle ~= nil then
+		local vehicle = controlledVehicle:getSelectedVehicle() -- workaround for non-existing self
+		if vehicle.spec_ssc ~= nil and vehicle.spec_ssc.isSSCReady and mouseButton == 1 then
+			if not vehicle.spec_ssc.isAutomaticMode then
+				for i,button in ipairs(vehicle.spec_ssc.hud.buttons) do
+					local x, y = button:getPosition()
+					local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, x+button.offsetX, y+button.offsetY, button.width, button.height)
+					if not eventUsed then
+						if cursorInElement then
+							button.onClickCallback(vehicle, button.sectionId)
+							eventUsed = true
+							break
+						end
+					end
+				end
+			end
+			if not eventUsed then
+				local autoModeButton = vehicle.spec_ssc.hud.autoModeButton
+				local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, autoModeButton.x+autoModeButton.offsetX, autoModeButton.y+autoModeButton.offsetY, autoModeButton.width, autoModeButton.height)
+				if cursorInElement then
+					vehicle.spec_ssc.hud.autoModeButton.onClickCallback(vehicle)
+					eventUsed = true
 				end
 			end
 		end
@@ -360,7 +395,7 @@ function SprayerSectionControl:changeSectionState(section, newState)
 		end
 	else
 		for k2,effectNodeId in pairs(section.effectNodes) do
-			g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
+			--g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
 			local sprayType = self:getActiveSprayType()
 			if sprayType ~= nil then
 				g_effectManager:stopEffect(sprayType.effects[tonumber(effectNodeId)])
@@ -377,9 +412,15 @@ function SprayerSectionControl:onTurnedOn()
 		for k,section in pairs(self.spec_ssc.sections) do
 			if not section.active then
 				for k2,effectNodeId in pairs(section.effectNodes) do
-					g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
+					--[[g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
 					for _, sprayType in ipairs(self.spec_sprayer.sprayTypes) do
 						g_effectManager:stopEffect(sprayType.effects[tonumber(effectNodeId)])
+					end]]
+					local sprayType = self:getActiveSprayType()
+					if sprayType ~= nil then
+						g_effectManager:stopEffect(sprayType.effects[tonumber(effectNodeId)])
+					else
+						g_effectManager:stopEffect(self.spec_sprayer.effects[tonumber(effectNodeId)])
 					end
 				end
 			else
@@ -399,6 +440,13 @@ function SprayerSectionControl:onTurnedOff()
 	end
 end
 
+function SprayerSectionControl:doCheckSpeedLimit(superFunc)
+	if self:getActiveSprayerSectionsWidth() == 0 then
+		return false
+	end
+	return superFunc(self)
+end
+
 function SprayerSectionControl:getSprayerUsage(superFunc, fillType, dt)
 	local origUsage = superFunc(self, fillType, dt)
 	if self.spec_ssc.isSSCReady then
@@ -416,6 +464,33 @@ function SprayerSectionControl:processSprayerArea(superFunc, workArea, dt)
 	end
 	local changedArea, totalArea = superFunc(self, workArea, dt)
 	return changedArea, totalArea
+end
+
+function SprayerSectionControl:onPostAttach(attacherVehicle, inputJointDescIndex, jointDescIndex)
+	if attacherVehicle.spec_enterable ~= nil and attacherVehicle.spec_enterable.cameras ~= nil then
+		for _, camera in pairs(attacherVehicle.spec_enterable.cameras) do
+			camera.isRotatableBk = camera.isRotatable
+		end
+	end
+end
+
+function SprayerSectionControl:onPreDetach(attacherVehicle, implement)
+	if attacherVehicle.spec_enterable ~= nil and attacherVehicle.spec_enterable.cameras ~= nil then
+		for _, camera in pairs(attacherVehicle.spec_enterable.cameras) do
+			camera.allowTranslation = camera.rotateNode ~= nil and camera.rotateNode ~= camera.cameraNode
+			camera.isRotatable = Utils.getNoNil(camera.isRotatableBk, true)
+		end
+	end
+end
+
+function SprayerSectionControl:onLeaveRootVehicle()
+	local attacherVehicle = self:getRootVehicle()
+	if attacherVehicle.spec_enterable ~= nil and attacherVehicle.spec_enterable.cameras ~= nil then
+		for _, camera in pairs(attacherVehicle.spec_enterable.cameras) do
+			camera.allowTranslation = camera.rotateNode ~= nil and camera.rotateNode ~= camera.cameraNode
+			camera.isRotatable = Utils.getNoNil(camera.isRotatableBk, true)
+		end
+	end
 end
 
 function SprayerSectionControl:getSprayerFullWidth()
@@ -441,58 +516,37 @@ function SprayerSectionControl.processActionEvent(self, actionName, inputValue, 
 		self.spec_ssc.hudActive = not self.spec_ssc.hudActive
 		if not self.spec_ssc.hudActive and g_inputBinding:getShowMouseCursor() then
 			g_inputBinding:setShowMouseCursor(false)
-			if self.spec_enterable ~= nil and self.spec_enterable.cameras ~= nil then
-				for _, camera in pairs(self.spec_enterable.cameras) do
-					camera.allowTranslation = true
-					camera.isRotatable = true
+			local rootVehicle = self:getRootVehicle()
+			if rootVehicle.spec_enterable ~= nil and rootVehicle.spec_enterable.cameras ~= nil then
+				for _, camera in pairs(rootVehicle.spec_enterable.cameras) do
+					camera.allowTranslation = camera.rotateNode ~= nil and camera.rotateNode ~= camera.cameraNode
+					camera.isRotatable = Utils.getNoNil(camera.isRotatableBk, true)
 				end
 			end
 		end
 	end
 	if actionName == "SHOW_SSC_MOUSE" then
 		if self.spec_ssc.hudActive then
-			g_inputBinding:setShowMouseCursor(not g_inputBinding:getShowMouseCursor())
-			if g_inputBinding:getShowMouseCursor() then
-				g_inputBinding:setContext("SSC_HUD", true, false)
+			local show = not g_inputBinding:getShowMouseCursor()
+			g_inputBinding:setShowMouseCursor(show)
+			local rootVehicle = self:getRootVehicle()
+			if rootVehicle.spec_enterable ~= nil and rootVehicle.spec_enterable.cameras ~= nil then
+				for _, camera in pairs(self:getRootVehicle().spec_enterable.cameras) do
+					camera.isRotatable = Utils.getNoNil(camera.isRotatableBk, true) and not show
+					camera.allowTranslation = (camera.rotateNode ~= nil and camera.rotateNode ~= camera.cameraNode) and not show
+				end
+			end
+		end
+	end
+end
 
-				local _, eventId = g_inputBinding:registerActionEvent(InputAction.SHOW_SSC_MOUSE, self, SprayerSectionControl.processActionEvent, false, true, false, true)
-				local _, eventId2 = g_inputBinding:registerActionEvent(InputAction.SSC_MOUSECLICK, self, SprayerSectionControl.processActionEvent, false, true, false, true)
-				g_inputBinding:setActionEventTextVisibility(eventId, false)
-				g_inputBinding:setActionEventTextVisibility(eventId2, false)
-			else
-				g_inputBinding:removeActionEventsByTarget(self)
-				g_inputBinding:revertContext(true) -- revert and clear message context
-			end
-		end
-	end
-	if actionName == "SSC_MOUSECLICK" then
-		if self.spec_ssc.hudActive then
-			local posX, posY = g_inputBinding:getMousePosition()
-			
-			if g_inputBinding:getShowMouseCursor() and g_gui.currentGui == nil then
-				local eventUsed = false
-				if not self.spec_ssc.isAutomaticMode then
-					for i,button in ipairs(self.spec_ssc.hud.buttons) do
-						local x, y = button:getPosition()
-						local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, x+button.offsetX, y+button.offsetY, button.width, button.height)
-						-- handle click/activate only if event has not been consumed, yet
-						if not eventUsed then
-							if cursorInElement then
-								button.onClickCallback(self, button.sectionId)
-								eventUsed = true
-								break
-							end
-						end
-					end
-				end
-				if not eventUsed then
-					local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, self.spec_ssc.hud.autoModeButton.x+self.spec_ssc.hud.autoModeButton.offsetX, self.spec_ssc.hud.autoModeButton.y+self.spec_ssc.hud.autoModeButton.offsetY, self.spec_ssc.hud.autoModeButton.width, self.spec_ssc.hud.autoModeButton.height)
-					if cursorInElement then
-						self.spec_ssc.hud.autoModeButton.onClickCallback(self)
-						eventUsed = true
-					end
-				end
-			end
-		end
-	end
+function SprayerSectionControl.getIsAreaOwned(farmId, sX, sZ, wX, wZ, hX, hZ)
+    local centerX, centerZ = (sX + wX)*0.5, (sZ + wZ)*0.5
+    if g_farmlandManager:getIsOwnedByFarmAtWorldPosition(farmId, centerX, centerZ) then
+        return true
+    end
+    if g_missionManager:getIsMissionWorkAllowed(farmId, centerX, centerZ, nil) then
+        return true
+    end
+    return false
 end

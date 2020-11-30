@@ -7,6 +7,10 @@
 -- Original loader script created by Wopster
 ----------------------------------------------------------------------------------------------------
 
+SSCLoader = {};
+local SSCLoader_mt = Class(SSCLoader);
+addModEventListener(SSCLoader);
+
 local directory = g_currentModDirectory
 local modName = g_currentModName
 
@@ -23,3 +27,11 @@ local function validateVehicleTypes(vehicleTypeManager)
 end
 
 VehicleTypeManager.validateVehicleTypes = Utils.prependedFunction(VehicleTypeManager.validateVehicleTypes, validateVehicleTypes)
+
+function SSCLoader:mouseEvent(posX, posY, isDown, isUp, mouseKey)
+	if g_currentMission.paused or g_gui.currentGui ~= nil then return end
+	
+	if isDown then
+		SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseKey)
+	end
+end
