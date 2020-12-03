@@ -450,7 +450,7 @@ end
 function SprayerSectionControl:getSprayerUsage(superFunc, fillType, dt)
 	local origUsage = superFunc(self, fillType, dt)
 	if self.spec_ssc.isSSCReady then
-		return origUsage * self:getActiveSprayerSectionsWidth() / self:getSprayerFullWidth()
+		return origUsage * self:getLastSpeed() / self.speedLimit * self:getActiveSprayerSectionsWidth() / self:getSprayerFullWidth()
 	else
 		return origUsage
 	end
