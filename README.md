@@ -41,7 +41,7 @@ There is no limit of maximum sections. However, it is recommended to have less t
 
 #### XML part
 The XML part is mainly copy-paste. The following lines need to be copied into the sprayer's XML file.
-```
+````xml
 <sprayerSectionControl>
   <sections>
     <section workingWidth="3" workAreaId="1" effectNodeId="1" />
@@ -55,20 +55,20 @@ The XML part is mainly copy-paste. The following lines need to be copied into th
     <section workingWidth="3" workAreaId="9" effectNodeId="9" />
   </sections>
 </sprayerSectionControl>
-```
+````
 Although the entries should be self-explaining I will explain them for you:
 - All sections get linked to their workAreas and effect nodes here.
 - workingWidth is the working width of this section. All section working widths combined should be equal to the total working width (24m in this example). This is used for calculating the spray usage.
 - workAreaId is the index of the workArea in the `<workAreas>` part. The first workArea has index/id 1.
 - effectNodeId is the index of the effect node in the `<sprayer> <effects>` part. Again, the first effectNode has index/id 1. If more than one effectNodes are used for one section, you can add them like this: `effectNodeId="1 2 3 4"`
 - To set up the groups mentioned earlier paste this before `</sprayerSectionControl>`:
-```
+````xml
   <groups>
     <group sectionIds="1 2 3"/>
     <group sectionIds="4 5 6"/>
     <group sectionIds="7 8 9"/>
   </groups>
-```
+````
 This will group sections 1, 2 and 3 to the first HUD section, sections 4, 5 and 6 to the second, etc. There can be up to 13 groups.
 
 For a more convenient way of XML editing you can use my [XML Helper tool](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/XML%20Helper/SSC_XML_Helper.exe) which automatically generates the XML entries.
