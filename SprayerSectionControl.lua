@@ -40,8 +40,7 @@ end
 function SprayerSectionControl.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterActionEvents", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", SprayerSectionControl)
-	SpecializationUtil.registerEventListener(vehicleType, "onPostLoad", SprayerSectionControl)
-	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", SprayerSectionControl)
+	SpecializationUtil.registerEventListener(vehicleType, "onUpdateTick", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onDraw", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onPostAttach", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreDetach", SprayerSectionControl)
@@ -63,6 +62,7 @@ function SprayerSectionControl.registerFunctions(vehicleType)
 	SpecializationUtil.registerFunction(vehicleType, "changeSectionGroupState", SprayerSectionControl.changeSectionGroupState)
 	SpecializationUtil.registerFunction(vehicleType, "toggleAutomaticMode", SprayerSectionControl.toggleAutomaticMode)
 	SpecializationUtil.registerFunction(vehicleType, "createSSCHUDElement", SprayerSectionControl.createSSCHUDElement)
+	SpecializationUtil.registerFunction(vehicleType, "createTestAreas", SprayerSectionControl.createTestAreas)
 end
 
 function SprayerSectionControl:onRegisterActionEvents(isActiveForInput, isActiveForInputIgnoreSelection)
@@ -104,20 +104,16 @@ function SprayerSectionControl:onLoad(savegame)
 			end
 			i = i + 1
 			local workAreaId = getXMLInt(self.xmlFile, key.."#workAreaId")
+			local testStart, testWidth, testHeight, coordinates = self:createTestAreas(workAreaId)
 			local effectNodes = StringUtil.getVectorNFromString(getXMLString(self.xmlFile, key.."#effectNodeId"))
-			local testAreaStart = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaStartNode"), self.i3dMappings)
-			local testAreaWidth = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaWidthNode"), self.i3dMappings)
-			local testAreaHeight = I3DUtil.indexToObject(self.components, getXMLString(self.xmlFile, key .. "#testAreaHeightNode"), self.i3dMappings)
 			local workingWidth = Utils.getNoNil(getXMLFloat(self.xmlFile, key.."#workingWidth"), 3)
-			if workAreaId == nil and self.spec_workArea.workAreas[i] ~= nil then
-				workAreaId = i
-			end
-			if workAreaId ~= nil and effectNodes ~= nil and testAreaStart ~= nil and testAreaWidth ~= nil and testAreaHeight ~= nil then
-				spec.sections[i] = {workAreaId=workAreaId, effectNodes=effectNodes, testAreaStart=testAreaStart, testAreaWidth=testAreaWidth, testAreaHeight=testAreaHeight, active=true, workingWidth = workingWidth}
-				self.spec_workArea.workAreas[workAreaId].sscId = i
-				spec.sections[i].sprayType = self.spec_workArea.workAreas[workAreaId].sprayType
+			
+			if testStart ~= nil and testWidth ~= nil and testHeight ~= nil and effectNodes ~= nil then
+				spec.sections[i] = {workAreaId=workAreaId, effectNodes=effectNodes, testAreaStart=testStart, testAreaWidth=testWidth, testAreaHeight=testHeight, active=true, workingWidth = workingWidth, direction = 1, coordinates = coordinates}
+				self:getWorkAreaByIndex(workAreaId).sscId = i
+				spec.sections[i].sprayType = self:getWorkAreaByIndex(workAreaId).sprayType
 			else
-				print("Warning: Invalid sprayer section setup '"..key.."' in '" .. self.configFileName.."'")
+				print("Warning: Invalid sprayer section setup '"..key.."' in '" .. self.configFileName.."'!")
 			end
 		end
 		if hasXMLProperty(self.xmlFile, "vehicle.sprayerSectionControl.groups") then
@@ -231,18 +227,44 @@ function SprayerSectionControl:onLoad(savegame)
 	end
 end
 
-function SprayerSectionControl:onPostLoad(savegame)
-	if g_client.serverStreamId ~= 0 then
-		local spec = self.spec_ssc -- multiplayer --> make testAreas bigger
-		if spec.isSSCReady then
-			for k,section in pairs(spec.sections) do
-				local x, y, z = getTranslation(section.testAreaStart)
-				setTranslation(section.testAreaStart, x, y, z+0.8)
-				x, y, z = getTranslation(section.testAreaWidth)
-				setTranslation(section.testAreaWidth, x, y, z+0.8)
-			end
-		end
+function SprayerSectionControl:createTestAreas(workAreaId)
+	local workArea = self:getWorkAreaByIndex(workAreaId)
+	if workArea == nil then	
+		print(string.format("Error: workArea %d not found! Could not create testArea!", workareaId))
+		return
 	end
+	local parentNode = getParent(workArea.start)
+	local x1,y1,z1 = worldToLocal(parentNode, getWorldTranslation(workArea.start))
+	local x2,y2,z2 = worldToLocal(workArea.start, getWorldTranslation(workArea.width))
+	local x3,y3,z3 = worldToLocal(workArea.start, getWorldTranslation(workArea.height))
+	local max1 = math.max(z2,z3)
+	local adjust = g_client.serverStreamId ~= 0 and 1.8 or 1
+	if max1 == 0 then
+		z1 = z1 + adjust
+	end
+	if (z2 == max1 and max1 ~= 0) then
+		z2 = z2 + adjust
+	elseif (max1 == 0 and z2 < max1) then
+		z2 = z2 - adjust
+	end
+	if (z3 == max1 and max1 ~= 0) then
+		z3 = z3 + adjust
+	elseif (max1 == 0 and z3 < max1) then
+		z3 = z3 - adjust
+	end
+	local testAreaStartNode = createTransformGroup(string.format("testAreaStart%d", workAreaId))
+	setTranslation(testAreaStartNode, x1,y1,z1)
+	link(parentNode, testAreaStartNode)
+	
+	local testAreaWidthNode = createTransformGroup(string.format("testAreaWidth%d", workAreaId))
+	setTranslation(testAreaWidthNode, x2,y2,z2)
+	link(testAreaStartNode, testAreaWidthNode)
+	
+	local testAreaHeightNode = createTransformGroup(string.format("testAreaHeight%d", workAreaId))
+	setTranslation(testAreaHeightNode, x3,y3,z3)
+	link(testAreaStartNode, testAreaHeightNode)
+	
+	return testAreaStartNode, testAreaWidthNode, testAreaHeightNode, {x1,y1,z1,adjust}
 end
 
 function SprayerSectionControl:createSSCHUDElement(image, x, y, hudScale, uvs, alignment, onClickCallback, sectionId)
@@ -267,7 +289,7 @@ function SprayerSectionControl:createSSCHUDElement(image, x, y, hudScale, uvs, a
 	return overlay, w, h
 end
 
-function SprayerSectionControl:onUpdate(dt)
+function SprayerSectionControl:onUpdateTick(dt)
 	if self.spec_ssc.isSSCReady then
 		local spec = self.spec_ssc
 		if spec.isAutomaticMode and self:getIsTurnedOn() then
@@ -281,6 +303,16 @@ function SprayerSectionControl:onUpdate(dt)
 						end
 					end
 					if sActive then
+						if self.movingDirection == 1 and section.direction ~= 1 then -- if driving reverse, adjust testAreas to cover area behind sprayer
+							setTranslation(section.testAreaStart, section.coordinates[1], section.coordinates[2], section.coordinates[3])
+							section.direction = 1
+						elseif self.movingDirection == 0 and section.direction ~= 0 then
+							setTranslation(section.testAreaStart, section.coordinates[1], section.coordinates[2], section.coordinates[3]-section.coordinates[4]/2)
+							section.direction = 0
+						elseif self.movingDirection == -1 and section.direction ~= -1 then
+							setTranslation(section.testAreaStart, section.coordinates[1], section.coordinates[2], section.coordinates[3]-section.coordinates[4])
+							section.direction = -1
+						end
 						local fillType = self:getFillUnitLastValidFillType(self:getSprayerFillUnitIndex())
 						if fillType == FillType.UNKNOWN then
 							fillType = self:getFillUnitFirstSupportedFillType(self:getSprayerFillUnitIndex())
@@ -441,16 +473,13 @@ function SprayerSectionControl:onTurnedOff()
 end
 
 function SprayerSectionControl:doCheckSpeedLimit(superFunc)
-	if self:getActiveSprayerSectionsWidth() == 0 then
-		return false
-	end
-	return superFunc(self)
+	return superFunc(self) and self:getActiveSprayerSectionsWidth() > 0
 end
 
 function SprayerSectionControl:getSprayerUsage(superFunc, fillType, dt)
 	local origUsage = superFunc(self, fillType, dt)
 	if self.spec_ssc.isSSCReady then
-		return origUsage * self:getActiveSprayerSectionsWidth() / self:getSprayerFullWidth()
+		return origUsage * (self:getLastSpeed() / self.speedLimit) * (self:getActiveSprayerSectionsWidth() / self:getSprayerFullWidth())
 	else
 		return origUsage
 	end

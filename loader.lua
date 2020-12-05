@@ -28,6 +28,10 @@ end
 
 VehicleTypeManager.validateVehicleTypes = Utils.prependedFunction(VehicleTypeManager.validateVehicleTypes, validateVehicleTypes)
 
+--[[function SSCLoader:loadMap()
+	table.insert(g_storeManager:getItemByCustomEnvironment(modName).functions, g_i18n:getText("function_SprayerSectionControl_ready"))
+end]]
+
 function SSCLoader:mouseEvent(posX, posY, isDown, isUp, mouseKey)
 	if g_currentMission.paused or g_gui.currentGui ~= nil then return end
 	
