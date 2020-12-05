@@ -3,12 +3,15 @@
     <title>
         <en>SprayerSectionControl</en>
         <de>Teilbreitenschaltung</de>
+	<fr>CoupureDeTronçons</fr>
     </title>
     <description>
 		<de><![CDATA[Mit diesem Mod können einzelne Teilbreiten von Spritzen deaktiviert werden.]]>
 		</de>
 		<en><![CDATA[This mod adds the ability to turn sections of sprayers off.]]>
 		</en>
+	    	<fr><![CDATA[Ce mod offre la possibilité de gérer les tronçons des pulvérisateurs.]]>
+		</fr>
     </description>
     <author>Rival</author>
     <version>0.4.0.0</version>
@@ -34,9 +37,9 @@
     </actions>
 
     <l10n>
-        <text name="input_SHOW_SSC_HUD"><en>SSC: HUD on/off</en><de>SSC: HUD ein/aus</de></text>
-        <text name="input_SHOW_SSC_MOUSE"><en>SSC: Mouse cursor</en><de>SSC: Mauszeiger</de></text>
-        <text name="SSC_AUTOMATIC_MODE"><en>AUTOMATIC MODE</en><de>AUTOMATIK-MODUS</de></text>
-        <text name="SSC_MANUAL_MODE"><en>MANUAL MODE</en><de>MANUELLER MODUS</de></text>
+        <text name="input_SHOW_SSC_HUD"><en>SSC: HUD on/off</en><de>SSC: HUD ein/aus</de><fr>SSC: Afficher/Masquer le HUD</fr></text>
+        <text name="input_SHOW_SSC_MOUSE"><en>SSC: Mouse cursor</en><de>SSC: Mauszeiger</de><fr>SSC: Afficher/Masquer le curseur</fr></text>
+        <text name="SSC_AUTOMATIC_MODE"><en>AUTOMATIC MODE</en><de>AUTOMATIK-MODUS</de><fr>MODE AUTOMATIQUE</fr></text>
+        <text name="SSC_MANUAL_MODE"><en>MANUAL MODE</en><de>MANUELLER MODUS</de><fr>MODE MANUEL</fr></text>
     </l10n>
 </modDesc>
