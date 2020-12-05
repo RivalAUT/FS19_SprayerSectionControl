@@ -3,7 +3,7 @@
     <title>
         <en>SprayerSectionControl</en>
         <de>Teilbreitenschaltung</de>
-	<fr>CoupureDeTronçons</fr>
+		<fr>CoupureDeTronçons</fr>
     </title>
     <description>
 		<de><![CDATA[Mit diesem Mod können einzelne Teilbreiten von Spritzen deaktiviert werden.]]>
@@ -14,7 +14,7 @@
 		</fr>
     </description>
     <author>Rival</author>
-    <version>0.4.0.0</version>
+    <version>0.4.0.1</version>
     <iconFilename>icon.dds</iconFilename>
     <multiplayer supported="true"/>
 	

@@ -339,30 +339,32 @@ function SprayerSectionControl:onUpdateTick(dt)
 end
 
 function SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseButton)
-	local eventUsed = false
-	local controlledVehicle = g_currentMission.controlledVehicle
-	if controlledVehicle ~= nil then
-		local vehicle = controlledVehicle:getSelectedVehicle() -- workaround for non-existing self
-		if vehicle.spec_ssc ~= nil and vehicle.spec_ssc.isSSCReady and mouseButton == 1 then
-			if not vehicle.spec_ssc.isAutomaticMode then
-				for i,button in ipairs(vehicle.spec_ssc.hud.buttons) do
-					local x, y = button:getPosition()
-					local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, x+button.offsetX, y+button.offsetY, button.width, button.height)
-					if not eventUsed then
-						if cursorInElement then
-							button.onClickCallback(vehicle, button.sectionId)
-							eventUsed = true
-							break
+	if mouseButton == 1 then
+		local eventUsed = false
+		local controlledVehicle = g_currentMission.controlledVehicle
+		if controlledVehicle ~= nil then
+			local vehicle = controlledVehicle:getSelectedVehicle() -- workaround for non-existing self
+			if vehicle ~= nil and vehicle.spec_ssc ~= nil and vehicle.spec_ssc.isSSCReady then
+				if not vehicle.spec_ssc.isAutomaticMode then
+					for i,button in ipairs(vehicle.spec_ssc.hud.buttons) do
+						local x, y = button:getPosition()
+						local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, x+button.offsetX, y+button.offsetY, button.width, button.height)
+						if not eventUsed then
+							if cursorInElement then
+								button.onClickCallback(vehicle, button.sectionId)
+								eventUsed = true
+								break
+							end
 						end
 					end
 				end
-			end
-			if not eventUsed then
-				local autoModeButton = vehicle.spec_ssc.hud.autoModeButton
-				local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, autoModeButton.x+autoModeButton.offsetX, autoModeButton.y+autoModeButton.offsetY, autoModeButton.width, autoModeButton.height)
-				if cursorInElement then
-					vehicle.spec_ssc.hud.autoModeButton.onClickCallback(vehicle)
-					eventUsed = true
+				if not eventUsed then
+					local autoModeButton = vehicle.spec_ssc.hud.autoModeButton
+					local cursorInElement = GuiUtils.checkOverlayOverlap(posX, posY, autoModeButton.x+autoModeButton.offsetX, autoModeButton.y+autoModeButton.offsetY, autoModeButton.width, autoModeButton.height)
+					if cursorInElement then
+						vehicle.spec_ssc.hud.autoModeButton.onClickCallback(vehicle)
+						eventUsed = true
+					end
 				end
 			end
 		end
