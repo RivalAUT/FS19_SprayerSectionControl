@@ -475,7 +475,12 @@ function SprayerSectionControl:onTurnedOff()
 end
 
 function SprayerSectionControl:doCheckSpeedLimit(superFunc)
-	return superFunc(self) and self:getActiveSprayerSectionsWidth() > 0
+	if self.spec_ssc ~= nil and self.spec_ssc.isSSCReady then
+		if self:getActiveSprayerSectionsWidth() == 0 then
+			return false
+		end
+	end
+	return superFunc(self)
 end
 
 function SprayerSectionControl:getSprayerUsage(superFunc, fillType, dt)
