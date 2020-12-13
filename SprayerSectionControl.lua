@@ -372,7 +372,7 @@ function SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseButto
 end
 
 function SprayerSectionControl:onUpdate()
-	if self:getIsActiveForInput() and self.spec_ssc.isSSCReady and self.spec_ssc.hudActive then
+	if self:getIsActiveForInput(false, true) and self.spec_ssc.isSSCReady and self.spec_ssc.hudActive then
 		self.spec_ssc.hud.bg:render()
 		for k,hud in pairs(self.spec_ssc.hud.sections) do
 			hud:render()
