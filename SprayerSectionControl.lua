@@ -41,7 +41,7 @@ function SprayerSectionControl.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterActionEvents", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdateTick", SprayerSectionControl)
-	SpecializationUtil.registerEventListener(vehicleType, "onDraw", SprayerSectionControl)
+	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", SprayerSectionControl) -- onDraw
 	SpecializationUtil.registerEventListener(vehicleType, "onPostAttach", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreDetach", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onLeaveRootVehicle", SprayerSectionControl)
@@ -371,8 +371,8 @@ function SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseButto
 	end
 end
 
-function SprayerSectionControl:onDraw()
-	if self.spec_ssc.hudActive and self.spec_ssc.isSSCReady then
+function SprayerSectionControl:onUpdate()
+	if self:getIsActiveForInput() and self.spec_ssc.isSSCReady and self.spec_ssc.hudActive then
 		self.spec_ssc.hud.bg:render()
 		for k,hud in pairs(self.spec_ssc.hud.sections) do
 			hud:render()
