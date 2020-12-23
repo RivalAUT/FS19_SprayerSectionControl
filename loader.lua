@@ -33,7 +33,7 @@ VehicleTypeManager.validateVehicleTypes = Utils.prependedFunction(VehicleTypeMan
 end]]
 
 function SSCLoader:mouseEvent(posX, posY, isDown, isUp, mouseKey)
-	if g_currentMission.paused or g_gui.currentGui ~= nil then return end
+	if g_currentMission.paused or g_gui:getIsGuiVisible() then return end --g_gui.currentGui ~= nil
 	
 	if isDown then
 		SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseKey)

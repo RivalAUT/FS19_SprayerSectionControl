@@ -1,10 +1,7 @@
 --
 -- SprayerSectionControl
 --
--- # author:	Rival
--- # date:		19.07.2020
--- # version:	0.2.0.0
-
+-- author: Rival
 
 SprayerSectionControl = {}
 SprayerSectionControl.modDirectory  = g_currentModDirectory
@@ -190,7 +187,7 @@ function SprayerSectionControl:onLoad(savegame)
 		local w,h = getNormalizedScreenValues(wpx * uiScale * hudScale, 350 * uiScale * hudScale)
 		local w2,h2 = getNormalizedScreenValues((wpx+80) * uiScale * hudScale, 350 * uiScale * hudScale)
 		local baseX = 1-g_safeFrameOffsetX-w
-		local baseY = 0.6
+		local baseY = 0.75
 
 		spec.hud.sections = {}
 		spec.hud.buttons = {}
@@ -372,15 +369,19 @@ function SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseButto
 end
 
 function SprayerSectionControl:onUpdate()
-	if not g_gui:getIsGuiVisible() and self:getIsActiveForInput(false, true) and self.spec_ssc.isSSCReady and self.spec_ssc.hudActive then
-		self.spec_ssc.hud.bg:render()
+	if not g_gui:getIsGuiVisible() and g_currentMission.hud.isVisible and self:getIsActiveForInput(false, true) and self.spec_ssc.isSSCReady and self.spec_ssc.hudActive then
+		--self.spec_ssc.hud.bg:render()
+		renderOverlay(self.spec_ssc.hud.bg.overlayId, self.spec_ssc.hud.bg.x+self.spec_ssc.hud.bg.offsetX, self.spec_ssc.hud.bg.y+self.spec_ssc.hud.bg.offsetY, self.spec_ssc.hud.bg.width, self.spec_ssc.hud.bg.height)
 		for k,hud in pairs(self.spec_ssc.hud.sections) do
-			hud:render()
+			--hud:render()
+			renderOverlay(hud.overlayId, hud.x+hud.offsetX, hud.y+hud.offsetY, hud.width, hud.height)
 		end
 		for k,hud in pairs(self.spec_ssc.hud.buttons) do
-			hud:render()
+			--hud:render()
+			renderOverlay(hud.overlayId, hud.x+hud.offsetX, hud.y+hud.offsetY, hud.width, hud.height)
 		end
-		self.spec_ssc.hud.autoModeButton:render()
+		--self.spec_ssc.hud.autoModeButton:render()
+		renderOverlay(self.spec_ssc.hud.autoModeButton.overlayId, self.spec_ssc.hud.autoModeButton.x+self.spec_ssc.hud.autoModeButton.offsetX, self.spec_ssc.hud.autoModeButton.y+self.spec_ssc.hud.autoModeButton.offsetY, self.spec_ssc.hud.autoModeButton.width, self.spec_ssc.hud.autoModeButton.height)
 		setTextAlignment(RenderText.ALIGN_CENTER)
 		renderText(self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].x, self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].y+self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].offsetY+self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].height*1.1, 
 				   0.013*g_gameSettings.uiScale, self.spec_ssc.isAutomaticMode and g_i18n:getText("SSC_AUTOMATIC_MODE") or g_i18n:getText("SSC_MANUAL_MODE"))
