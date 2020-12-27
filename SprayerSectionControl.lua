@@ -38,7 +38,7 @@ function SprayerSectionControl.registerEventListeners(vehicleType)
 	SpecializationUtil.registerEventListener(vehicleType, "onRegisterActionEvents", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onLoad", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onUpdateTick", SprayerSectionControl)
-	SpecializationUtil.registerEventListener(vehicleType, "onUpdate", SprayerSectionControl) -- onDraw
+	--SpecializationUtil.registerEventListener(vehicleType, "onUpdate", SprayerSectionControl) -- onDraw
 	SpecializationUtil.registerEventListener(vehicleType, "onPostAttach", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onPreDetach", SprayerSectionControl)
 	SpecializationUtil.registerEventListener(vehicleType, "onLeaveRootVehicle", SprayerSectionControl)
@@ -217,7 +217,7 @@ function SprayerSectionControl:onLoad(savegame)
 		end
 		spec.hud.midSection = math.ceil(midSection)
 		spec.hud.autoModeButton,_,_ = self:createSSCHUDElement(image, baseX+lastW/2, baseY+lastH, hudScale*uiScale*1.75, SprayerSectionControl.HUDUVs.SECTION_ONOFF, Overlay.ALIGN_VERTICAL_BOTTOM, self.toggleAutomaticMode)
-		spec.hud.bg = Overlay:new(image, self.spec_ssc.hud.sections[spec.hud.midSection].x+(even and self.spec_ssc.hud.sections[spec.hud.midSection].offsetX or 0), baseY+h/5, w2, h)
+		spec.hud.bg = Overlay:new(image, spec.hud.sections[spec.hud.midSection].x+(even and spec.hud.sections[spec.hud.midSection].offsetX or 0), baseY+h/5, w2, h)
 		spec.hud.bg:setUVs(getNormalizedUVs(SprayerSectionControl.HUDUVs.BACKGROUND, { 1024, 256 }))
 		spec.hud.bg:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
 		spec.hud.bg:setColor(0.015, 0.015, 0.015, 0.9)
@@ -368,23 +368,19 @@ function SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseButto
 	end
 end
 
-function SprayerSectionControl:onUpdate()
-	if not g_gui:getIsGuiVisible() and g_currentMission.hud.isVisible and self:getIsActiveForInput(false, true) and self.spec_ssc.isSSCReady and self.spec_ssc.hudActive then
-		--self.spec_ssc.hud.bg:render()
-		renderOverlay(self.spec_ssc.hud.bg.overlayId, self.spec_ssc.hud.bg.x+self.spec_ssc.hud.bg.offsetX, self.spec_ssc.hud.bg.y+self.spec_ssc.hud.bg.offsetY, self.spec_ssc.hud.bg.width, self.spec_ssc.hud.bg.height)
-		for k,hud in pairs(self.spec_ssc.hud.sections) do
-			--hud:render()
-			renderOverlay(hud.overlayId, hud.x+hud.offsetX, hud.y+hud.offsetY, hud.width, hud.height)
+function SprayerSectionControl:onDrawFixed(vehicle)
+	if vehicle:getIsActiveForInput(false, true) and vehicle.spec_ssc.hudActive then
+		vehicle.spec_ssc.hud.bg:render()
+		for k,hud in pairs(vehicle.spec_ssc.hud.sections) do
+			hud:render()
 		end
-		for k,hud in pairs(self.spec_ssc.hud.buttons) do
-			--hud:render()
-			renderOverlay(hud.overlayId, hud.x+hud.offsetX, hud.y+hud.offsetY, hud.width, hud.height)
+		for k,hud in pairs(vehicle.spec_ssc.hud.buttons) do
+			hud:render()
 		end
-		--self.spec_ssc.hud.autoModeButton:render()
-		renderOverlay(self.spec_ssc.hud.autoModeButton.overlayId, self.spec_ssc.hud.autoModeButton.x+self.spec_ssc.hud.autoModeButton.offsetX, self.spec_ssc.hud.autoModeButton.y+self.spec_ssc.hud.autoModeButton.offsetY, self.spec_ssc.hud.autoModeButton.width, self.spec_ssc.hud.autoModeButton.height)
+		vehicle.spec_ssc.hud.autoModeButton:render()
 		setTextAlignment(RenderText.ALIGN_CENTER)
-		renderText(self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].x, self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].y+self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].offsetY+self.spec_ssc.hud.sections[self.spec_ssc.hud.midSection].height*1.1, 
-				   0.013*g_gameSettings.uiScale, self.spec_ssc.isAutomaticMode and g_i18n:getText("SSC_AUTOMATIC_MODE") or g_i18n:getText("SSC_MANUAL_MODE"))
+		renderText(vehicle.spec_ssc.hud.sections[vehicle.spec_ssc.hud.midSection].x, vehicle.spec_ssc.hud.sections[vehicle.spec_ssc.hud.midSection].y+vehicle.spec_ssc.hud.sections[vehicle.spec_ssc.hud.midSection].offsetY+vehicle.spec_ssc.hud.sections[vehicle.spec_ssc.hud.midSection].height*1.1, 
+				   0.013*g_gameSettings.uiScale, vehicle.spec_ssc.isAutomaticMode and g_i18n:getText("SSC_AUTOMATIC_MODE") or g_i18n:getText("SSC_MANUAL_MODE"))
 	end
 end
 

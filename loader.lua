@@ -39,3 +39,15 @@ function SSCLoader:mouseEvent(posX, posY, isDown, isUp, mouseKey)
 		SprayerSectionControl:onMouseEvent(posX, posY, isDown, isUp, mouseKey)
 	end
 end
+
+function SSCLoader:draw()
+	if not g_gui:getIsGuiVisible() and g_currentMission.hud.isVisible then
+		local controlledVehicle = g_currentMission.controlledVehicle
+		if controlledVehicle ~= nil then
+			local vehicle = controlledVehicle:getSelectedVehicle() -- workaround for non-existing self
+			if vehicle ~= nil and vehicle.spec_ssc ~= nil and vehicle.spec_ssc.isSSCReady then
+				SprayerSectionControl:onDrawFixed(vehicle)
+			end
+		end
+	end
+end
