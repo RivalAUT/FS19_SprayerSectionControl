@@ -76,3 +76,5 @@ For a more convenient way of XML editing you can use my [XML Helper tool](https:
 That's it!
 
 A sample sprayer (Hardi Mega 2200 from the base game) prepared for section control is available [here.](https://github.com/RivalAUT/FS19_SprayerSectionControl/raw/master/FS19_HardiMega2200.zip)
+
+Alternatively, every GIANTS sprayer equipped with SSC is available [here.](https://forbidden-mods.de/filebase/file/19953-pack-sprayer-control/)
