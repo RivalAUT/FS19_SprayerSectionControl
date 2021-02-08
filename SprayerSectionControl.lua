@@ -222,6 +222,17 @@ function SprayerSectionControl:onLoad(savegame)
 		spec.hud.bg:setAlignment(Overlay.ALIGN_VERTICAL_MIDDLE, Overlay.ALIGN_HORIZONTAL_CENTER)
 		spec.hud.bg:setColor(0.015, 0.015, 0.015, 0.9)
 	end
+	if self.loadDashboardsFromXML ~= nil then
+		local key = "vehicle.sprayerSectionControl.dashboards"
+       
+		self:loadDashboardsFromXML(self.xmlFile, key, {
+			valueFunc = "getActiveSprayerSectionsWidth",
+			valueTypeToLoad = "section",
+			valueObject = self,            
+			additionalAttributesFunc = SprayerSectionControl.dashboardSectionAttributes,
+            stateFunc = SprayerSectionControl.dashboardSectionState
+        })
+	end
 end
 
 function SprayerSectionControl:createTestAreas(workAreaId)
@@ -582,4 +593,28 @@ function SprayerSectionControl.getIsAreaOwned(farmId, sX, sZ, wX, wZ, hX, hZ)
         return true
     end
     return false
+end
+
+function SprayerSectionControl:dashboardSectionAttributes(xmlFile, key, dashboard, isActive)
+    dashboard.sectionId = {
+        StringUtil.getVectorFromString(getXMLString(xmlFile, key .. "#sectionId"))
+    }
+    return true
+end
+
+function SprayerSectionControl:dashboardSectionState(dashboard, newValue, minValue, maxValue, isActive)
+	local isSectionActive = false
+
+	if dashboard.sectionId ~= nil then
+		for _, sectionID in pairs(dashboard.sectionId) do
+			for id, section in pairs(self.spec_ssc.sections) do
+				if sectionID == id then
+					isSectionActive = section.active
+					break
+				end
+			end
+		end
+    end
+
+    Dashboard.defaultDashboardStateFunc(self, dashboard, isSectionActive, minValue, maxValue, isActive)
 end
